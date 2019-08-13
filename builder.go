@@ -1,0 +1,353 @@
+package xpg
+
+import (
+	"bytes"
+	"strconv"
+	"strings"
+)
+
+// Union Объединение запросов
+func (c *Connection) Union(all bool, queries ...*Connection) *Connection {
+	for _, query := range queries {
+		c.unions = append(c.unions, union{
+			all:  all,
+			conn: query,
+		})
+	}
+	return c
+}
+
+// Limit Выбрать limit записей
+func (c *Connection) Limit(limit int) *Connection {
+	c.limit = limit
+	return c
+}
+
+// Offset Пропустить offset записей
+func (c *Connection) Offset(offset int) *Connection {
+	c.offset = offset
+	return c
+}
+
+// Where Добавит условие WHERE через AND
+func (c *Connection) Where(column, operator string, value interface{}) *Connection {
+	c.where(" AND ", column, operator, value)
+	return c
+}
+
+// OrWhere Добавит условие WHERE через OR
+func (c *Connection) OrWhere(column, operator string, value interface{}) *Connection {
+	c.where(" OR ", column, operator, value)
+	return c
+}
+
+// Where Добавит условие WHERE BETWEEN через AND
+func (c *Connection) WhereBetween(column string, from, to interface{}) *Connection {
+	c.GroupWhere(func(c *Connection) {
+		c.Where(column, ">=", from)
+		c.Where(column, "<=", to)
+	})
+	return c
+}
+
+// OrWhere Добавит условие WHERE BETWEEN через OR
+func (c *Connection) OrWhereBetween(column string, from, to interface{}) *Connection {
+	c.OrGroupWhere(func(c *Connection) {
+		c.Where(column, ">=", from)
+		c.Where(column, "<=", to)
+	})
+	return c
+}
+
+// GroupWhere Добавит групповое условие WHERE через AND
+func (c *Connection) GroupWhere(f func(c *Connection)) *Connection {
+	var group = c.openedGroupWhere()
+	if len(group.wheres) > 0 {
+		group.closed = true
+		group = c.openedGroupWhere()
+	}
+	f(c)
+	group.closed = true
+	return c
+}
+
+// GroupWhere Добавит групповое условие WHERE через OR
+func (c *Connection) OrGroupWhere(f func(c *Connection)) *Connection {
+	var group = c.openedGroupWhere()
+	if len(group.wheres) > 0 {
+		group.closed = true
+		group = c.openedGroupWhere()
+	}
+	f(c)
+	group.logic = " OR "
+	group.closed = true
+	return c
+}
+
+// RawWhere Произвольное условие WHERE через AND
+func (c *Connection) WhereRaw(sql string, bindings ...interface{}) *Connection {
+	c.whereRaw(" AND ", whereRaw{
+		sql:      sql,
+		bindings: bindings,
+	})
+	return c
+}
+
+// OrWhereRaw Произвольное условие WHERE через OR
+func (c *Connection) OrWhereRaw(sql string, bindings ...interface{}) *Connection {
+	c.whereRaw(" OR ", whereRaw{
+		sql:      sql,
+		bindings: bindings,
+	})
+	return c
+}
+
+// GroupBy Группировка по колонкам
+func (c *Connection) GroupBy(column string, columns ...string) *Connection {
+	for _, column := range append([]string{column}, columns...) {
+		var sql bytes.Buffer
+		sql.WriteString(`"`)
+		sql.WriteString(column)
+		sql.WriteString(`"`)
+		c.groupBy = append(c.groupBy, sql.String())
+	}
+	return c
+}
+
+// Distinct Удаление дублей
+func (c *Connection) Distinct(on ...string) *Connection {
+	c.distinct.active = true
+	c.distinct.on = on
+	return c
+}
+
+// OrderBy Отсортировать по
+func (c *Connection) OrderBy(column, order string) *Connection {
+	var sql bytes.Buffer
+	sql.WriteString(`"`)
+	sql.WriteString(column)
+	sql.WriteString(`"`)
+	sql.WriteString(" ")
+	sql.WriteString(order)
+	c.orderBy = append(c.orderBy, sql.String())
+	return c
+}
+
+// OrderByRaw Произвольная сортировка
+func (c *Connection) OrderByRaw(orderRaw string) *Connection {
+	c.orderBy = append(c.orderBy, orderRaw)
+	return c
+}
+
+// OrderByRand Отсортировать в случайном порядке
+func (c *Connection) OrderByRand() *Connection {
+	c.orderBy = append(c.orderBy, "RANDOM()")
+	return c
+}
+
+// BuildSelect Вернёт строку запроса и аргументы
+func (c *Connection) BuildSelect() (string, []interface{}) {
+	var query bytes.Buffer
+	from, args := c.buildFrom(nil)
+	where, args := c.buildWhere(args)
+
+	query.WriteString(c.buildSelect())
+	query.WriteString(from)
+	query.WriteString(where)
+	query.WriteString(c.buildGroupBy())
+	query.WriteString(c.buildOrderBy())
+	query.WriteString(c.buildOffset())
+	query.WriteString(c.buildLimit())
+
+	return query.String(), args
+}
+
+// BuildSum Вернёт строку запроса и аргументы
+func (c *Connection) BuildSum(column string) (string, []interface{}) {
+	var query bytes.Buffer
+	from, args := c.buildFrom(nil)
+	where, args := c.buildWhere(args)
+
+	query.WriteString(`SELECT SUM("`)
+	query.WriteString(column)
+	query.WriteString(`")`)
+	query.WriteString(from)
+	query.WriteString(where)
+
+	return query.String(), args
+}
+
+// BuildCount Вернёт строку запроса и аргументы
+func (c *Connection) BuildCount() (string, []interface{}) {
+	var query bytes.Buffer
+	from, args := c.buildFrom(nil)
+	where, args := c.buildWhere(args)
+
+	if c.distinct.active {
+		if len(c.distinct.on) > 0 {
+			query.WriteString(`SELECT COUNT(DISTINCT ON("` + strings.Join(c.distinct.on, `","`) + `")) AS "count"`)
+		} else {
+			query.WriteString(`SELECT COUNT(DISTINCT *) AS "count"`)
+		}
+	} else {
+		query.WriteString(`SELECT COUNT(*) AS "count"`)
+	}
+	query.WriteString(from)
+	query.WriteString(where)
+
+	return query.String(), args
+}
+
+func (c *Connection) buildWhere(args []interface{}) (string, []interface{}) {
+	var query bytes.Buffer
+	var groupNum uint
+	for _, group := range c.wheres {
+		if len(group.wheres) > 0 {
+			if groupNum > 0 {
+				query.WriteString(group.logic)
+			}
+			query.WriteString("(")
+			for i, where := range group.wheres {
+				if i > 0 {
+					query.WriteString(where.logic)
+				}
+				if where.raw.sql == "" {
+					args = append(args, where.value)
+					query.WriteString(`"`)
+					query.WriteString(where.column)
+					query.WriteString(`"`)
+					query.WriteString(where.operator)
+					query.WriteString("$")
+					query.WriteString(strconv.Itoa(len(args)))
+				} else {
+					sql := where.raw.sql
+					for i, arg := range where.raw.bindings {
+						args = append(args, arg)
+						sql = strings.Replace(sql, "$"+strconv.Itoa(i+1), "$"+strconv.Itoa(len(args)), -1)
+					}
+					query.WriteString("(")
+					query.WriteString(sql)
+					query.WriteString(")")
+				}
+			}
+			query.WriteString(")")
+			groupNum++
+		}
+	}
+
+	if query.Len() > 0 {
+		return " WHERE " + query.String(), args
+	}
+
+	return "", args
+}
+
+func (c *Connection) buildSelect() string {
+	var query bytes.Buffer
+	query.WriteString("SELECT ")
+	if c.distinct.active {
+		query.WriteString("DISTINCT ")
+		if len(c.distinct.on) > 0 {
+			query.WriteString(`ON("`)
+			query.WriteString(strings.Join(c.distinct.on, `","`))
+			query.WriteString(`") `)
+		}
+	}
+	query.WriteString(c.tabler.Columns())
+	return query.String()
+}
+
+func (c *Connection) buildFrom(args []interface{}) (string, []interface{})  {
+	var query bytes.Buffer
+	query.WriteString(` FROM `)
+	if len(c.unions) > 0 {
+		query.WriteString("(\n")
+		for i, union := range c.unions {
+			sql, subArgs := union.conn.BuildSelect()
+			for j, arg := range subArgs {
+				args = append(args, arg)
+				sql = strings.Replace(sql, "$"+strconv.Itoa(j+1), "$"+strconv.Itoa(len(args)), -1)
+			}
+			query.WriteString("\t")
+			if i > 0 {
+				query.WriteString("UNION ")
+				if union.all {
+					query.WriteString("ALL ")
+				}
+			}
+			query.WriteString(sql)
+			query.WriteString("\n")
+		}
+		query.WriteString(`) AS "xpg_union_`)
+	} else {
+		query.WriteString(`"`)
+	}
+	query.WriteString(c.tabler.Table())
+	query.WriteString(`"`)
+	return query.String(), args
+}
+
+func (c *Connection) buildOffset() string {
+	var query bytes.Buffer
+	if c.offset > 0 {
+		query.WriteString(" OFFSET ")
+		query.WriteString(strconv.Itoa(c.offset))
+	}
+	return query.String()
+}
+
+func (c *Connection) buildLimit() string {
+	var query bytes.Buffer
+	if c.limit > 0 {
+		query.WriteString(" LIMIT ")
+		query.WriteString(strconv.Itoa(c.limit))
+	}
+	return query.String()
+}
+
+func (c *Connection) buildOrderBy() string {
+	var query bytes.Buffer
+	if len(c.orderBy) > 0 {
+		query.WriteString(" ORDER BY ")
+		query.WriteString(strings.Join(c.orderBy, ", "))
+	}
+	return query.String()
+}
+
+func (c *Connection) buildGroupBy() string {
+	var query bytes.Buffer
+	if len(c.groupBy) > 0 {
+		query.WriteString(" GROUP BY ")
+		query.WriteString(strings.Join(c.groupBy, ", "))
+	}
+	return query.String()
+}
+
+func (c *Connection) whereRaw(logic string, raw whereRaw) {
+	var group = c.openedGroupWhere()
+	group.wheres = append(group.wheres, where{
+		logic: logic,
+		raw:   raw,
+	})
+}
+
+func (c *Connection) where(logic, column, operator string, value interface{}) {
+	var group = c.openedGroupWhere()
+	group.wheres = append(group.wheres, where{
+		logic:    logic,
+		column:   column,
+		operator: operator,
+		value:    value,
+	})
+}
+
+func (c *Connection) openedGroupWhere() *groupWhere {
+	var index = len(c.wheres) - 1
+	if index == -1 || c.wheres[index].closed {
+		c.wheres = append(c.wheres, groupWhere{
+			logic: " AND ",
+		})
+		index++
+	}
+	return &c.wheres[index]
+}
