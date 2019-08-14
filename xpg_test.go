@@ -13,7 +13,7 @@ func testConnect() error {
 		Database: "xpg_test",
 		User:     "postgres",
 		Password: "123456",
-	}, "./migrations/test")
+	}, 1, "./migrations/test")
 }
 
 func TestNewConnection(t *testing.T) {

@@ -28,7 +28,7 @@ func testConnect() error {
 		Database: "xpg_test",
 		User:     "postgres",
 		Password: "123456",
-	}, "./test")
+	}, 1, "./test")
 }
 
 func TestRestore(t *testing.T) {

@@ -32,7 +32,7 @@ type union struct {
 }
 
 type Connection struct {
-	conn           *pgx.Conn
+	conn           *pgx.ConnPool
 	tabler         Tabler
 	wheres         []groupWhere
 	limit          int
@@ -45,11 +45,11 @@ type Connection struct {
 }
 
 // Close Закроет подключение к БД
-func (c *Connection) Close() error {
-	return c.conn.Close()
+func (c *Connection) Close() {
+	c.conn.Close()
 }
 
-func newConn(conn *pgx.Conn, migrationsPath string) *Connection {
+func newConn(conn *pgx.ConnPool, migrationsPath string) *Connection {
 	connection := &Connection{}
 	connection.conn = conn
 	connection.migrationsPath = migrationsPath

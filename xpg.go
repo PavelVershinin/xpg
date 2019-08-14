@@ -3,6 +3,7 @@ package xpg
 import (
 	"fmt"
 	"github.com/jackc/pgx"
+	"log"
 	"sync"
 	"time"
 )
@@ -17,22 +18,25 @@ func init() {
 }
 
 // NewConnection Создаст новое подключение к БД
-func NewConnection(connectionName string, conf pgx.ConnConfig, migrationsPath string) error {
-	conn, err := pgx.Connect(conf)
+func NewConnection(connectionName string, conf pgx.ConnConfig, maxConnections int, migrationsPath string) error {
+	conn, err := pgx.NewConnPool(pgx.ConnPoolConfig{
+		ConnConfig:     conf,
+		MaxConnections: maxConnections,
+		AfterConnect:   nil,
+		AcquireTimeout: 0,
+	})
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	return AddConnection(connectionName, conn, migrationsPath)
 }
 
 // AddConnection Добавит существующее подключение в коллекцию
-func AddConnection(connectionName string, conn *pgx.Conn, migrationsPath string) error {
+func AddConnection(connectionName string, conn *pgx.ConnPool, migrationsPath string) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if c, ok := connections[connectionName]; ok && c != nil {
-		if err := c.Close(); err != nil {
-			return err
-		}
+		c.Close()
 	}
 	connections[connectionName] = newConn(conn, migrationsPath)
 	return nil
@@ -57,7 +61,7 @@ func Conn(connectionName string) *Connection {
 }
 
 // DB Вернёт нативное подключение к БД
-func DB(connectionName string) *pgx.Conn {
+func DB(connectionName string) *pgx.ConnPool {
 	conn, err := connection(connectionName)
 	if err != nil {
 		panic(err)
@@ -89,9 +93,7 @@ func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, c := range connections {
-		if err := c.Close(); err != nil {
-			return err
-		}
+		c.Close()
 	}
 	connections = make(map[string]*Connection)
 	return nil
