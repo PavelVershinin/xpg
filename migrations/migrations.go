@@ -24,7 +24,7 @@ func Down(connectionName string, to int) error {
 	}
 
 	var from int
-	if res, err := xpg.New(objMigration).OrderBy("file", "DESC").First(); err != nil && err.Error() != "xdb: No records found" {
+	if res, err := xpg.New(objMigration).OrderBy("file", "DESC").First(); err != nil && err.Error() != "c: No records found" {
 		return err
 	} else if err == nil {
 		file := res.(*migration).File
@@ -95,7 +95,7 @@ func Up(connectionName string, to int) error {
 	}
 
 	var from int
-	if res, err := xpg.New(objMigration).OrderBy("file", "DESC").First(); err != nil && err.Error() != "xdb: No records found" {
+	if res, err := xpg.New(objMigration).OrderBy("file", "DESC").First(); err != nil && err.Error() != "xpg: No records found" {
 		return err
 	} else if err == nil {
 		file := res.(*migration).File

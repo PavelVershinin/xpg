@@ -164,7 +164,7 @@ func (c *Connection) First() (Tabler, error) {
 	}
 	defer rows.Close()
 	if !rows.Next() {
-		return nil, errors.New("xdb: No records found")
+		return nil, errors.New("xpg: No records found")
 	}
 	row, err := rows.Get()
 	if err != nil {
