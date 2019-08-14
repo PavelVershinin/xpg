@@ -1,15 +1,15 @@
 package xpg
 
 import (
+	"github.com/PavelVershinin/xpg/xpgtypes"
 	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/pgtype"
 )
 
 type Model struct {
 	ID int64 `json:"id"`
 	//...
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	CreatedAt xpgtypes.NullTime `json:"created_at"`
+	UpdatedAt xpgtypes.NullTime `json:"updated_at"`
 }
 
 // Table Возвращает название таблицы в базе данных
