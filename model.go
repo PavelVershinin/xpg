@@ -5,6 +5,7 @@ import (
 	"github.com/jackc/pgx"
 )
 
+// Model базовая модель соответствующая минимально требуемой структуре Tabler
 type Model struct {
 	ID int64 `json:"id"`
 	//...

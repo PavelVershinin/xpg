@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// NullTime Аналог sql.NullTime
 type NullTime struct {
 	Time  time.Time
 	Valid bool // Valid is true if Time is not NULL
@@ -24,6 +25,7 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
+// MarshalJSON Правила для упаковки в Json
 func (nt NullTime) MarshalJSON() ([]byte, error) {
 	if nt.Valid {
 		st := nt.Time.Format("2006-01-02 15:04:05")
@@ -35,6 +37,7 @@ func (nt NullTime) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
+// UnmarshalJSON Правила для распаковки из Json
 func (nt NullTime) UnmarshalJSON(b []byte) error {
 	t, err := time.Parse("2006-01-02 15:04:05", string(b))
 	nt.Time = t

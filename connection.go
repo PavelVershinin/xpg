@@ -31,6 +31,7 @@ type union struct {
 	conn *Connection
 }
 
+// Connection соединение
 type Connection struct {
 	conn           *pgx.ConnPool
 	tabler         Tabler

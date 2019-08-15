@@ -32,6 +32,7 @@ func Set(key string, value interface{}, periodValidity time.Duration) {
 	}
 	mu.Unlock()
 }
+
 // Get Получит из кеша значение по ключу key
 func Get(key string) (res interface{}, ok bool) {
 	mu.Lock()
@@ -56,7 +57,7 @@ func Delete(key string, keyFragment bool) {
 		} else if !keyFragment {
 			delete(list, key)
 		} else {
-			for k, _ := range list {
+			for k := range list {
 				if strings.Contains(k, key) {
 					delete(list, k)
 				}

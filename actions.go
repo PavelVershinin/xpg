@@ -74,7 +74,8 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 	sql.WriteString(")")
 
 	sql.WriteString(` RETURNING "id"`)
-	if res, err := c.Query(sql.String(), args...); err != nil {
+	var res *Rows
+	if res, err = c.Query(sql.String(), args...); err != nil {
 		return 0, err
 	} else {
 		if res.Next() {
@@ -167,10 +168,7 @@ func (c *Connection) First() (Tabler, error) {
 		return nil, errors.New("xpg: No records found")
 	}
 	row, err := rows.Get()
-	if err != nil {
-		return nil, err
-	}
-	return row, nil
+	return row, err
 }
 
 // Проверка наличия записи в базе

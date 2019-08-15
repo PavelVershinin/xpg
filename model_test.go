@@ -45,9 +45,9 @@ func (m *testModel) Scan(rows *pgx.Rows) (tabler Tabler, err error) {
 // Save Сохранение новой/измененной структуры в БД
 func (m *testModel) Save() (err error) {
 	data := map[string]interface{}{
-		"id": m.ID,
-		"column_one" : m.ColumnOne,
-		"column_two": m.ColumnTwo,
+		"id":           m.ID,
+		"column_one":   m.ColumnOne,
+		"column_two":   m.ColumnTwo,
 		"column_three": m.ColumnThree,
 	}
 	m.ID, err = New(m).Write(data)

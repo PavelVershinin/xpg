@@ -1,5 +1,6 @@
 package xpg
 
+// Column Свойства колонки таблицы
 type Column struct {
 	Name    string
 	Type    string
@@ -129,5 +130,3 @@ func (c *Connection) Tables() ([]string, error) {
 
 	return tables, nil
 }
-
-

@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Down выполнит SQL запросы из файлов отката миграций
 func Down(connectionName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_down\.sql$`)
 	var migrationPath = xpg.MigrationsPath(connectionName)
@@ -76,6 +77,7 @@ func Down(connectionName string, to int) error {
 	return nil
 }
 
+// Up Выполнит SQL запросы из файлов миграции
 func Up(connectionName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_up\.sql$`)
 	var migrationPath = xpg.MigrationsPath(connectionName)
@@ -145,6 +147,7 @@ func Up(connectionName string, to int) error {
 	return nil
 }
 
+// Restore Сверит структуру с базой данных, создаст таблицу, если её нет и добавит недостающие колонки
 func Restore(tabler xpg.Tabler) error {
 	var valueOf = reflect.ValueOf(tabler)
 	var tableName = tabler.Table()
@@ -189,6 +192,9 @@ func Restore(tabler xpg.Tabler) error {
 	}
 
 	existsColumns, err := conn.Columns()
+	if err != nil {
+		return err
+	}
 	for _, column := range columns {
 		name := strings.Trim(strings.ToLower(strings.Fields(strings.TrimSpace(column))[0]), `"`)
 		exists := false

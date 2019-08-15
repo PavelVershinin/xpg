@@ -41,7 +41,7 @@ func (c *Connection) OrWhere(column, operator string, value interface{}) *Connec
 	return c
 }
 
-// Where Добавит условие WHERE BETWEEN через AND
+// WhereBetween Добавит условие WHERE BETWEEN через AND
 func (c *Connection) WhereBetween(column string, from, to interface{}) *Connection {
 	c.GroupWhere(func(c *Connection) {
 		c.Where(column, ">=", from)
@@ -50,7 +50,7 @@ func (c *Connection) WhereBetween(column string, from, to interface{}) *Connecti
 	return c
 }
 
-// OrWhere Добавит условие WHERE BETWEEN через OR
+// OrWhereBetween Добавит условие WHERE BETWEEN через OR
 func (c *Connection) OrWhereBetween(column string, from, to interface{}) *Connection {
 	c.OrGroupWhere(func(c *Connection) {
 		c.Where(column, ">=", from)
@@ -71,7 +71,7 @@ func (c *Connection) GroupWhere(f func(c *Connection)) *Connection {
 	return c
 }
 
-// GroupWhere Добавит групповое условие WHERE через OR
+// OrGroupWhere Добавит групповое условие WHERE через OR
 func (c *Connection) OrGroupWhere(f func(c *Connection)) *Connection {
 	var group = c.openedGroupWhere()
 	if len(group.wheres) > 0 {
@@ -84,7 +84,7 @@ func (c *Connection) OrGroupWhere(f func(c *Connection)) *Connection {
 	return c
 }
 
-// RawWhere Произвольное условие WHERE через AND
+// WhereRaw Произвольное условие WHERE через AND
 func (c *Connection) WhereRaw(sql string, bindings ...interface{}) *Connection {
 	c.whereRaw(" AND ", whereRaw{
 		sql:      sql,
@@ -257,7 +257,7 @@ func (c *Connection) buildSelect() string {
 	return query.String()
 }
 
-func (c *Connection) buildFrom(args []interface{}) (string, []interface{})  {
+func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
 	var query bytes.Buffer
 	query.WriteString(` FROM `)
 	if len(c.unions) > 0 {
