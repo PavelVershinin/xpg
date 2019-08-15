@@ -37,21 +37,21 @@ func Down(connectionName string, to int) error {
 	if from <= to {
 		return nil
 	}
-
-	if files, err := ioutil.ReadDir(migrationPath); err != nil {
+	files, err := ioutil.ReadDir(migrationPath)
+	if err != nil {
 		return err
-	} else {
-		for _, f := range files {
-			if reTest.MatchString(f.Name()) {
-				num, _ := strconv.Atoi(strings.Split(f.Name(), "_")[0])
-				if num > from {
-					break
-				}
-				if num <= to {
-					continue
-				}
-				migrations = append(migrations, f.Name())
+	}
+
+	for _, f := range files {
+		if reTest.MatchString(f.Name()) {
+			num, _ := strconv.Atoi(strings.Split(f.Name(), "_")[0])
+			if num > from {
+				break
 			}
+			if num <= to {
+				continue
+			}
+			migrations = append(migrations, f.Name())
 		}
 	}
 
@@ -65,9 +65,8 @@ func Down(connectionName string, to int) error {
 		if sql != "" {
 			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
 				return err
-			} else {
-				log.Printf("%s executed!\n", file)
 			}
+			log.Printf("%s executed!\n", file)
 		}
 		if err := xpg.New(objMigration).Where("file", "=", strings.Replace(file, "_down", "_up", 1)).Delete(); err != nil {
 			return err
@@ -106,20 +105,21 @@ func Up(connectionName string, to int) error {
 		}
 	}
 
-	if files, err := ioutil.ReadDir(migrationPath); err != nil {
+	files, err := ioutil.ReadDir(migrationPath)
+	if err != nil {
 		return err
-	} else {
-		for _, f := range files {
-			if reTest.MatchString(f.Name()) {
-				num, _ := strconv.Atoi(strings.Split(f.Name(), "_")[0])
-				if to > -1 && num > to {
-					break
-				}
-				if num <= from {
-					continue
-				}
-				migrations = append(migrations, f.Name())
+	}
+
+	for _, f := range files {
+		if reTest.MatchString(f.Name()) {
+			num, _ := strconv.Atoi(strings.Split(f.Name(), "_")[0])
+			if to > -1 && num > to {
+				break
 			}
+			if num <= from {
+				continue
+			}
+			migrations = append(migrations, f.Name())
 		}
 	}
 
@@ -132,9 +132,8 @@ func Up(connectionName string, to int) error {
 		if sql != "" {
 			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
 				return err
-			} else {
-				log.Printf("%s executed!\n", file)
 			}
+			log.Printf("%s executed!\n", file)
 		}
 		row := &migration{}
 		row.SetConnection(connectionName)

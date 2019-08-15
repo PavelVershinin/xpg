@@ -74,15 +74,14 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 	sql.WriteString(")")
 
 	sql.WriteString(` RETURNING "id"`)
-	var res *Rows
-	if res, err = c.Query(sql.String(), args...); err != nil {
+	res, err := c.Query(sql.String(), args...)
+	if err != nil {
 		return 0, err
-	} else {
-		if res.Next() {
-			err = res.Scan(&id)
-		}
-		res.Close()
 	}
+	if res.Next() {
+		err = res.Scan(&id)
+	}
+	res.Close()
 
 	return id, err
 }
@@ -171,7 +170,7 @@ func (c *Connection) First() (Tabler, error) {
 	return row, err
 }
 
-// Проверка наличия записи в базе
+// Exists Проверка наличия записи в базе
 func (c *Connection) Exists() (bool, error) {
 	c.limit = 1
 	query, args := c.BuildSelect()
