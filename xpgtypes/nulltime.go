@@ -8,6 +8,7 @@ import (
 // NullTime Аналог sql.NullTime
 type NullTime struct {
 	Time  time.Time
+	Error error
 	Valid bool // Valid is true if Time is not NULL
 }
 
@@ -20,7 +21,7 @@ func (nt *NullTime) Scan(value interface{}) error {
 // Value implements the driver Valuer interface.
 func (nt NullTime) Value() (driver.Value, error) {
 	if !nt.Valid {
-		return nil, nil
+		return nil, nt.Error
 	}
 	return nt.Time, nil
 }
@@ -38,9 +39,8 @@ func (nt NullTime) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON Правила для распаковки из Json
-func (nt NullTime) UnmarshalJSON(b []byte) error {
-	t, err := time.Parse("2006-01-02 15:04:05", string(b))
-	nt.Time = t
-	nt.Valid = err == nil
+func (nt *NullTime) UnmarshalJSON(b []byte) error {
+	nt.Time, nt.Error = time.Parse(`"2006-01-02 15:04:05"`, string(b))
+	nt.Valid = nt.Error == nil
 	return nil
 }
