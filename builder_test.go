@@ -377,7 +377,7 @@ func TestConnection_Union(t *testing.T) {
 	var query = New(&testModel{})
 	query.Union(true, query1, query2)
 	query.Union(false, query3, query4)
-	query.Where("id", ">", 5).OrWhere("id", "<", 20).Limit(20).Offset(1).OrderBy("created_at", "DESC");
+	query.Where("id", ">", 5).OrWhere("id", "<", 20).Limit(20).Offset(1).OrderBy("created_at", "DESC")
 	var sql, args = query.BuildSelect()
 	var expected = strings.TrimSpace(`
 SELECT * FROM (
