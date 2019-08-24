@@ -114,13 +114,13 @@ func (c *Connection) OrWhereIn(column string, values *WhereInValues) *Connection
 	return c
 }
 
-// WhereIn Добавит условие WHERE NOT IN через AND
+// WhereNotIn Добавит условие WHERE NOT IN через AND
 func (c *Connection) WhereNotIn(column string, values *WhereInValues) *Connection {
 	c.where(" AND ", column, "NOT IN", values)
 	return c
 }
 
-// OrWhereIn Добавит условие WHERE NOT IN через OR
+// OrWhereNotIn Добавит условие WHERE NOT IN через OR
 func (c *Connection) OrWhereNotIn(column string, values *WhereInValues) *Connection {
 	c.where(" OR ", column, "NOT IN", values)
 	return c
