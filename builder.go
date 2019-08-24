@@ -102,6 +102,30 @@ func (c *Connection) OrWhereRaw(sql string, bindings ...interface{}) *Connection
 	return c
 }
 
+// WhereIn Добавит условие WHERE IN через AND
+func (c *Connection) WhereIn(column string, values *WhereInValues) *Connection {
+	c.where(" AND ", column, "IN", values)
+	return c
+}
+
+// OrWhereIn Добавит условие WHERE IN через OR
+func (c *Connection) OrWhereIn(column string, values *WhereInValues) *Connection {
+	c.where(" OR ", column, "IN", values)
+	return c
+}
+
+// WhereIn Добавит условие WHERE NOT IN через AND
+func (c *Connection) WhereNotIn(column string, values *WhereInValues) *Connection {
+	c.where(" AND ", column, "NOT IN", values)
+	return c
+}
+
+// OrWhereIn Добавит условие WHERE NOT IN через OR
+func (c *Connection) OrWhereNotIn(column string, values *WhereInValues) *Connection {
+	c.where(" OR ", column, "NOT IN", values)
+	return c
+}
+
 // GroupBy Группировка по колонкам
 func (c *Connection) GroupBy(column string, columns ...string) *Connection {
 	for _, column := range append([]string{column}, columns...) {
@@ -212,13 +236,25 @@ func (c *Connection) buildWhere(args []interface{}) (string, []interface{}) {
 					query.WriteString(where.logic)
 				}
 				if where.raw.sql == "" {
-					args = append(args, where.value)
 					query.WriteString(`"`)
 					query.WriteString(where.column)
 					query.WriteString(`"`)
-					query.WriteString(where.operator)
-					query.WriteString("$")
-					query.WriteString(strconv.Itoa(len(args)))
+					switch where.operator {
+					case "IN":
+						var sql string
+						sql, args = where.value.(*WhereInValues).Sql(args)
+						query.WriteString(sql)
+					case "NOT IN":
+						var sql string
+						sql, args = where.value.(*WhereInValues).Sql(args)
+						query.WriteString(" NOT")
+						query.WriteString(sql)
+					default:
+						args = append(args, where.value)
+						query.WriteString(where.operator)
+						query.WriteString("$")
+						query.WriteString(strconv.Itoa(len(args)))
+					}
 				} else {
 					sql := where.raw.sql
 					for i, arg := range where.raw.bindings {

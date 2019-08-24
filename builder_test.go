@@ -190,6 +190,54 @@ func TestConnection_OrWhereRaw(t *testing.T) {
 	}
 }
 
+func TestConnection_WhereIn(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var in = []int{1, 2, 3, 4, 5, 6, 7}
+	var query = New(&testModel{})
+	query.Where("id", "=", 10)
+	query.WhereIn("id", (&WhereInValues{}).Int(in...))
+	query.Where("id", "=", 11)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" WHERE ("id"=$1 AND "id" IN($2,$3,$4,$5,$6,$7,$8) AND "id"=$9)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 9 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}
+
+func TestConnection_WhereNotIn(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var in = []int{1, 2, 3, 4, 5, 6, 7}
+	var query = New(&testModel{})
+	query.Where("id", "=", 10)
+	query.WhereNotIn("id", (&WhereInValues{}).Int(in...))
+	query.Where("id", "=", 11)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" WHERE ("id"=$1 AND "id" NOT IN($2,$3,$4,$5,$6,$7,$8) AND "id"=$9)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 9 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}
+
 func TestConnection_WhereBetween(t *testing.T) {
 	if err := testConnect(); err != nil {
 		t.Fatal(err)

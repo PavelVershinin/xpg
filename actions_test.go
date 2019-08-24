@@ -183,3 +183,20 @@ func TestConnection_Sum(t *testing.T) {
 		t.Log(sum)
 	}
 }
+
+func TestConnection_WhereIn2(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var in = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	if sum, err := New(&testModel{}).WhereIn("column_three", (&WhereInValues{}).Int(in...)).OrderBy("column_three", "DESC").Sum("column_three"); err != nil {
+		t.Error(err)
+	} else {
+		t.Log(sum)
+	}
+}
