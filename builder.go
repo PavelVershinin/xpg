@@ -6,6 +6,50 @@ import (
 	"strings"
 )
 
+// Join Присоединит таблицу INNER JOIN
+func (c *Connection) Join(table, alias, condition string) *Connection {
+	c.joins = append(c.joins, join{
+		joinType:  "INNER",
+		table:     table,
+		alias:     alias,
+		condition: condition,
+	})
+	return c
+}
+
+// LeftJoin Присоединит таблицу LEFT OUTER JOIN
+func (c *Connection) LeftJoin(table, alias, condition string) *Connection {
+	c.joins = append(c.joins, join{
+		joinType:  "LEFT",
+		table:     table,
+		alias:     alias,
+		condition: condition,
+	})
+	return c
+}
+
+// RightJoin Присоединит таблицу RIGHT OUTER JOIN
+func (c *Connection) RightJoin(table, alias, condition string) *Connection {
+	c.joins = append(c.joins, join{
+		joinType:  "RIGHT",
+		table:     table,
+		alias:     alias,
+		condition: condition,
+	})
+	return c
+}
+
+// FullJoin Присоединит таблицу FULL OUTER JOIN
+func (c *Connection) FullJoin(table, alias, condition string) *Connection {
+	c.joins = append(c.joins, join{
+		joinType:  "FULL",
+		table:     table,
+		alias:     alias,
+		condition: condition,
+	})
+	return c
+}
+
 // Union Объединение запросов
 func (c *Connection) Union(all bool, queries ...*Connection) *Connection {
 	for _, query := range queries {
@@ -177,6 +221,7 @@ func (c *Connection) BuildSelect() (string, []interface{}) {
 
 	query.WriteString(c.buildSelect())
 	query.WriteString(from)
+	query.WriteString(c.buildJoin())
 	query.WriteString(where)
 	query.WriteString(c.buildGroupBy())
 	query.WriteString(c.buildOrderBy())
@@ -196,6 +241,7 @@ func (c *Connection) BuildSum(column string) (string, []interface{}) {
 	query.WriteString(column)
 	query.WriteString(`")`)
 	query.WriteString(from)
+	query.WriteString(c.buildJoin())
 	query.WriteString(where)
 
 	return query.String(), args
@@ -217,6 +263,7 @@ func (c *Connection) BuildCount() (string, []interface{}) {
 		query.WriteString(`SELECT COUNT(*) AS "count"`)
 	}
 	query.WriteString(from)
+	query.WriteString(c.buildJoin())
 	query.WriteString(where)
 
 	return query.String(), args
@@ -321,6 +368,26 @@ func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
 	query.WriteString(c.tabler.Table())
 	query.WriteString(`"`)
 	return query.String(), args
+}
+
+func (c *Connection) buildJoin() string {
+	var query bytes.Buffer
+	for _, join := range c.joins {
+		query.WriteString(" ")
+		query.WriteString(join.joinType)
+		query.WriteString(" JOIN ")
+		query.WriteString(join.table)
+		if join.alias != "" {
+			query.WriteString(" AS ")
+			query.WriteString(join.alias)
+		}
+		if join.condition != "" {
+			query.WriteString(" ON(")
+			query.WriteString(join.condition)
+			query.WriteString(")")
+		}
+	}
+	return query.String()
 }
 
 func (c *Connection) buildOffset() string {

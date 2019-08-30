@@ -507,3 +507,91 @@ func TestConnection_BuildSum(t *testing.T) {
 		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
 	}
 }
+
+func TestConnection_Join(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var query = New(&testModel{})
+	query.Where("id", ">", 5)
+	query.Join("test_table", "tt", `"tt"."id" = "test_model_table"."column_three"`)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" INNER JOIN test_table AS tt ON("tt"."id" = "test_model_table"."column_three") WHERE ("id">$1)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 1 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}
+
+func TestConnection_LeftJoin(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var query = New(&testModel{})
+	query.Where("id", ">", 5)
+	query.LeftJoin("test_table", "tt", `"tt"."id" = "test_model_table"."column_three"`)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" LEFT JOIN test_table AS tt ON("tt"."id" = "test_model_table"."column_three") WHERE ("id">$1)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 1 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}
+
+func TestConnection_RightJoin(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var query = New(&testModel{})
+	query.Where("id", ">", 5)
+	query.RightJoin("test_table", "tt", `"tt"."id" = "test_model_table"."column_three"`)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" RIGHT JOIN test_table AS tt ON("tt"."id" = "test_model_table"."column_three") WHERE ("id">$1)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 1 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}
+
+func TestConnection_FullJoin(t *testing.T) {
+	if err := testConnect(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	var query = New(&testModel{})
+	query.Where("id", ">", 5)
+	query.FullJoin("test_table", "tt", `"tt"."id" = "test_model_table"."column_three"`)
+	var sql, args = query.BuildSelect()
+	if sql != `SELECT * FROM "test_model_table" FULL JOIN test_table AS tt ON("tt"."id" = "test_model_table"."column_three") WHERE ("id">$1)` {
+		t.Log(sql)
+		t.Error(`Wrong query`)
+	}
+	if len(args) != 1 {
+		t.Errorf(`Wrong arguments number, expected 1, real %d`, len(args))
+	}
+}

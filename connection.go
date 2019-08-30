@@ -31,6 +31,13 @@ type union struct {
 	conn *Connection
 }
 
+type join struct {
+	joinType  string
+	table     string
+	alias    string
+	condition string
+}
+
 // Connection соединение
 type Connection struct {
 	conn           *pgx.ConnPool
@@ -42,6 +49,7 @@ type Connection struct {
 	groupBy        []string
 	orderBy        []string
 	unions         []union
+	joins          []join
 	migrationsPath string
 }
 
