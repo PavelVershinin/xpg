@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var localZone, localOffset = time.Now().Local().Zone()
+
 // NullTime Аналог sql.NullTime
 type NullTime struct {
 	Time  time.Time
@@ -14,7 +16,13 @@ type NullTime struct {
 
 // Scan implements the Scanner interface.
 func (nt *NullTime) Scan(value interface{}) error {
-	nt.Time, nt.Valid = value.(time.Time)
+	if t, ok := value.(time.Time); ok {
+		nt.Valid = true
+		if zone, offset := t.Zone(); localZone != zone {
+			t = t.Local().Add(time.Duration(offset - localOffset) * time.Second)
+		}
+		nt.Time = t
+	}
 	return nil
 }
 
