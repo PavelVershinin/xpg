@@ -52,3 +52,14 @@ func (nt *NullTime) UnmarshalJSON(b []byte) error {
 	nt.Valid = nt.Error == nil
 	return nil
 }
+
+func (nt NullTime) String() string {
+	if nt.Valid {
+		st := nt.Time.Format("2006-01-02 15:04:05")
+		if st == "0001-01-01 00:00:00" {
+			return ""
+		}
+		return st
+	}
+	return ""
+}
