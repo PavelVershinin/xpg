@@ -100,7 +100,7 @@ func Up(connectionName string, to int) error {
 	} else if err == nil {
 		file := res.(*migration).File
 		if reTest.MatchString(file) {
-			from, err = strconv.Atoi(strings.Split(file, "_")[0])
+			from, _ = strconv.Atoi(strings.Split(file, "_")[0])
 		}
 	}
 
