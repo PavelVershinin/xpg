@@ -72,16 +72,16 @@ func TestUp(t *testing.T) {
 	}
 }
 
-func TestDown(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := xpg.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if err := Down("xpg_connection", 0); err != nil {
-		t.Fatal(err)
-	}
-}
+//func TestDown(t *testing.T) {
+//	if err := testConnect(); err != nil {
+//		t.Fatal(err)
+//	}
+//	defer func() {
+//		if err := xpg.Close(); err != nil {
+//			t.Error(err)
+//		}
+//	}()
+//	if err := Down("xpg_connection", 0); err != nil {
+//		t.Fatal(err)
+//	}
+//}
