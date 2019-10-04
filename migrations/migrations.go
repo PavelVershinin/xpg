@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"errors"
-	"fmt"
 	"github.com/PavelVershinin/xpg"
 	"io/ioutil"
 	"log"
@@ -88,7 +87,7 @@ func Up(connectionName string, to int) error {
 	}
 
 	if to > -1 {
-		if ok, err := xpg.New(objMigration).Where("file", "=", fmt.Sprintf("%d_up.sql", to)).Exists(); err != nil {
+		if ok, err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(to)+"_up.sql").Exists(); err != nil {
 			return err
 		} else if ok {
 			return nil
