@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -16,7 +17,7 @@ import (
 func Down(connectionName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_down\.sql$`)
 	var migrationPath = xpg.MigrationsPath(connectionName)
-	var migrations []string
+	var migrations []int
 	var objMigration = &migration{}
 	objMigration.SetConnection(connectionName)
 	if err := Restore(objMigration); err != nil {
@@ -24,7 +25,7 @@ func Down(connectionName string, to int) error {
 	}
 
 	var from int
-	if res, err := xpg.New(objMigration).OrderBy("file", "DESC").First(); err != nil && err.Error() != "xpg: No records found" {
+	if res, err := xpg.New(objMigration).OrderBy("created_at", "DESC").First(); err != nil && err.Error() != "xpg: No records found" {
 		return err
 	} else if err == nil {
 		file := res.(*migration).File
@@ -50,13 +51,15 @@ func Down(connectionName string, to int) error {
 			if num <= to {
 				continue
 			}
-			migrations = append(migrations, f.Name())
+			migrations = append(migrations, num)
 		}
 	}
 
+	sort.Ints(migrations)
+
 	for i := len(migrations) - 1; i >= 0; i-- {
-		file := migrations[i]
-		b, err := ioutil.ReadFile(migrationPath + string(os.PathSeparator) + file)
+		fileNum := migrations[i]
+		b, err := ioutil.ReadFile(migrationPath + string(os.PathSeparator) + strconv.Itoa(fileNum) + "_down.sql")
 		if err != nil {
 			return err
 		}
@@ -65,9 +68,9 @@ func Down(connectionName string, to int) error {
 			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
 				return err
 			}
-			log.Printf("%s executed!\n", file)
+			log.Printf("%s executed!\n", strconv.Itoa(fileNum) + "_down.sql")
 		}
-		if err := xpg.New(objMigration).Where("file", "=", strings.Replace(file, "_down", "_up", 1)).Delete(); err != nil {
+		if err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(fileNum) + "_up.sql").Delete(); err != nil {
 			return err
 		}
 	}
@@ -79,7 +82,7 @@ func Down(connectionName string, to int) error {
 func Up(connectionName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_up\.sql$`)
 	var migrationPath = xpg.MigrationsPath(connectionName)
-	var migrations []string
+	var migrations []int
 	var objMigration = &migration{}
 	objMigration.SetConnection(connectionName)
 	if err := Restore(objMigration); err != nil {
@@ -118,12 +121,14 @@ func Up(connectionName string, to int) error {
 			if num <= from {
 				continue
 			}
-			migrations = append(migrations, f.Name())
+			migrations = append(migrations, num)
 		}
 	}
 
-	for _, file := range migrations {
-		b, err := ioutil.ReadFile(migrationPath + string(os.PathSeparator) + file)
+	sort.Ints(migrations)
+
+	for _, fileNum := range migrations {
+		b, err := ioutil.ReadFile(migrationPath + string(os.PathSeparator) + strconv.Itoa(fileNum) + "_up.sql")
 		if err != nil {
 			return err
 		}
@@ -132,11 +137,11 @@ func Up(connectionName string, to int) error {
 			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
 				return err
 			}
-			log.Printf("%s executed!\n", file)
+			log.Printf("%s executed!\n", strconv.Itoa(fileNum) + "_up.sql")
 		}
 		row := &migration{}
 		row.SetConnection(connectionName)
-		row.File = file
+		row.File = strconv.Itoa(fileNum) + "_up.sql"
 		if err := row.Save(); err != nil {
 			return err
 		}
