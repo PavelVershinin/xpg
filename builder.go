@@ -237,9 +237,9 @@ func (c *Connection) BuildSum(column string) (string, []interface{}) {
 	from, args := c.buildFrom(nil)
 	where, args := c.buildWhere(args)
 
-	query.WriteString(`SELECT SUM("`)
+	query.WriteString(`SELECT COALESCE(SUM("`)
 	query.WriteString(column)
-	query.WriteString(`")`)
+	query.WriteString(`"), 0)`)
 	query.WriteString(from)
 	query.WriteString(c.buildJoin())
 	query.WriteString(where)
