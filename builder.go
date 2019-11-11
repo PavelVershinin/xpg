@@ -254,8 +254,10 @@ func (c *Connection) BuildCount() (string, []interface{}) {
 	where, args := c.buildWhere(args)
 
 	if c.distinct.active {
-		if len(c.distinct.on) > 0 {
-			query.WriteString(`SELECT COUNT(DISTINCT ON("` + strings.Join(c.distinct.on, `","`) + `")) AS "count"`)
+		if len(c.distinct.on) == 1 {
+			query.WriteString(`SELECT COUNT(DISTINCT ` + c.distinct.on[0] + `) AS "count"`)
+		} else if len(c.distinct.on) > 1 {
+			query.WriteString(`SELECT COUNT(DISTINCT CONCAT(` + strings.Join(c.distinct.on, ",") + `)) AS "count"`)
 		} else {
 			query.WriteString(`SELECT COUNT(DISTINCT *) AS "count"`)
 		}
@@ -331,9 +333,9 @@ func (c *Connection) buildSelect() string {
 	if c.distinct.active {
 		query.WriteString("DISTINCT ")
 		if len(c.distinct.on) > 0 {
-			query.WriteString(`ON("`)
-			query.WriteString(strings.Join(c.distinct.on, `","`))
-			query.WriteString(`") `)
+			query.WriteString(`ON(`)
+			query.WriteString(strings.Join(c.distinct.on, `,`))
+			query.WriteString(`) `)
 		}
 	}
 	query.WriteString(c.tabler.Columns())
