@@ -314,7 +314,7 @@ func TestConnection_Distinct2(t *testing.T) {
 	var query = New(&testModel{})
 	query.Distinct("id", "column_one")
 	var sql, args = query.BuildSelect()
-	if sql != `SELECT DISTINCT ON("id","column_one") * FROM "test_model_table"` {
+	if sql != `SELECT DISTINCT ON(id,column_one) * FROM "test_model_table"` {
 		t.Log(sql)
 		t.Error(`Wrong query`)
 	}
@@ -335,7 +335,7 @@ func TestConnection_GroupBy(t *testing.T) {
 	var query = New(&testModel{})
 	query.GroupBy("id", "column_one")
 	var sql, args = query.BuildSelect()
-	if sql != `SELECT * FROM "test_model_table" GROUP BY "id", "column_one"` {
+	if sql != `SELECT * FROM "test_model_table" GROUP BY id, column_one` {
 		t.Log(sql)
 		t.Error(`Wrong query`)
 	}
@@ -357,7 +357,7 @@ func TestConnection_OrderBy(t *testing.T) {
 	query.OrderBy("id", "ASC")
 	query.OrderBy("created_at", "DESC")
 	var sql, args = query.BuildSelect()
-	if sql != `SELECT * FROM "test_model_table" ORDER BY "id" ASC, "created_at" DESC` {
+	if sql != `SELECT * FROM "test_model_table" ORDER BY id ASC, created_at DESC` {
 		t.Log(sql)
 		t.Error(`Wrong query`)
 	}
@@ -429,11 +429,11 @@ func TestConnection_Union(t *testing.T) {
 	var sql, args = query.BuildSelect()
 	var expected = strings.TrimSpace(`
 SELECT * FROM (
-	SELECT * FROM "test_model_table" WHERE ("id">=$1 AND "id"<=$2) ORDER BY "id" DESC OFFSET 1 LIMIT 20
-	UNION ALL SELECT * FROM "test_model_table" WHERE ("id">=$3 AND "id"<=$4) ORDER BY "id" ASC OFFSET 1 LIMIT 20
-	UNION SELECT * FROM "test_model_table" WHERE ("id">=$5 AND "id"<=$6) ORDER BY "id" ASC OFFSET 1 LIMIT 20
-	UNION SELECT * FROM "test_model_table" WHERE ("id">=$7 AND "id"<=$8) ORDER BY "id" DESC OFFSET 1 LIMIT 20
-) AS "xpg_union_test_model_table" WHERE ("id">$9 OR "id"<$10) ORDER BY "created_at" DESC OFFSET 1 LIMIT 20
+                SELECT * FROM "test_model_table" WHERE ("id">=$1 AND "id"<=$2) ORDER BY id DESC OFFSET 1 LIMIT 20
+                UNION ALL SELECT * FROM "test_model_table" WHERE ("id">=$3 AND "id"<=$4) ORDER BY id ASC OFFSET 1 LIMIT 20
+                UNION SELECT * FROM "test_model_table" WHERE ("id">=$5 AND "id"<=$6) ORDER BY id ASC OFFSET 1 LIMIT 20
+                UNION SELECT * FROM "test_model_table" WHERE ("id">=$7 AND "id"<=$8) ORDER BY id DESC OFFSET 1 LIMIT 20
+        ) AS "xpg_union_test_model_table" WHERE ("id">$9 OR "id"<$10) ORDER BY created_at DESC OFFSET 1 LIMIT 20
 `)
 	if sql != expected {
 		t.Log(sql)
@@ -499,7 +499,7 @@ func TestConnection_BuildSum(t *testing.T) {
 	var query = New(&testModel{})
 	query.Where("id", ">", 5)
 	var sql, args = query.BuildSum("column_three")
-	if sql != `SELECT SUM("column_three") FROM "test_model_table" WHERE ("id">$1)` {
+	if sql != `SELECT COALESCE(SUM("column_three"), 0) FROM "test_model_table" WHERE ("id">$1)` {
 		t.Log(sql)
 		t.Error(`Wrong query`)
 	}

@@ -174,9 +174,7 @@ func (c *Connection) OrWhereNotIn(column string, values *WhereInValues) *Connect
 func (c *Connection) GroupBy(column string, columns ...string) *Connection {
 	for _, column := range append([]string{column}, columns...) {
 		var sql bytes.Buffer
-		sql.WriteString(`"`)
 		sql.WriteString(column)
-		sql.WriteString(`"`)
 		c.groupBy = append(c.groupBy, sql.String())
 	}
 	return c
@@ -192,9 +190,7 @@ func (c *Connection) Distinct(on ...string) *Connection {
 // OrderBy Отсортировать по
 func (c *Connection) OrderBy(column, order string) *Connection {
 	var sql bytes.Buffer
-	sql.WriteString(`"`)
 	sql.WriteString(column)
-	sql.WriteString(`"`)
 	sql.WriteString(" ")
 	sql.WriteString(order)
 	c.orderBy = append(c.orderBy, sql.String())
