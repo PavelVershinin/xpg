@@ -1,6 +1,10 @@
 package xpg
 
-import "github.com/jackc/pgx"
+import (
+	"context"
+
+	"github.com/jackc/pgx"
+)
 
 type whereRaw struct {
 	sql      string
@@ -34,13 +38,14 @@ type union struct {
 type join struct {
 	joinType  string
 	table     string
-	alias    string
+	alias     string
 	condition string
 }
 
 // Connection соединение
 type Connection struct {
-	conn           *pgx.ConnPool
+	conn           *pgx.Conn
+	ctx            context.Context
 	tabler         Tabler
 	wheres         []groupWhere
 	limit          int
@@ -54,13 +59,14 @@ type Connection struct {
 }
 
 // Close Закроет подключение к БД
-func (c *Connection) Close() {
-	c.conn.Close()
+func (c *Connection) Close() error {
+	return c.conn.Close(c.ctx)
 }
 
-func newConn(conn *pgx.ConnPool, migrationsPath string) *Connection {
+func newConn(conn *pgx.Conn, ctx context.Context, migrationsPath string) *Connection {
 	connection := &Connection{}
 	connection.conn = conn
+	connection.ctx = ctx
 	connection.migrationsPath = migrationsPath
 	return connection
 }
@@ -68,6 +74,7 @@ func newConn(conn *pgx.ConnPool, migrationsPath string) *Connection {
 func (c *Connection) new(tabler Tabler) (conn *Connection) {
 	conn = &Connection{}
 	conn.conn = c.conn
+	conn.ctx = c.ctx
 	conn.migrationsPath = c.migrationsPath
 	conn.tabler = tabler
 	return

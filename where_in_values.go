@@ -40,9 +40,7 @@ func (w *WhereInValues) String(in ...string) *WhereInValues {
 // Interface Загрузка ...interface{}
 func (w *WhereInValues) Interface(in ...interface{}) *WhereInValues {
 	w.values = make([]interface{}, len(in))
-	for i, v := range in {
-		w.values[i] = v
-	}
+	copy(w.values, in)
 	return w
 }
 

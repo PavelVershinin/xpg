@@ -1,13 +1,14 @@
 package xpg
 
 import (
-	"github.com/jackc/pgx"
 	"log"
+
+	"github.com/jackc/pgx"
 )
 
 // Rows Интерфейс для хранения результата запроса к БД
 type Rows struct {
-	*pgx.Rows
+	pgx.Rows
 	conn *Connection
 }
 

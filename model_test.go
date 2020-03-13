@@ -1,119 +1,75 @@
-package xpg
+package xpg_test
 
 import (
-	"github.com/jackc/pgx"
+	"context"
 	"testing"
+
+	"github.com/PavelVershinin/xpg"
+	"github.com/stretchr/testify/require"
+
+	"github.com/PavelVershinin/xpg/test"
+	"github.com/stretchr/testify/assert"
 )
 
-type testModel struct {
-	Model
-	ColumnOne   string `xpg:"column_one CHAR(50) NOT NULL DEFAULT ''"`
-	ColumnTwo   string `xpg:"column_two CHAR(50) NOT NULL DEFAULT ''"`
-	ColumnThree int64  `xpg:"column_three BIGINT NOT NULL DEFAULT 0"`
-}
-
-// Table Возвращает название таблицы в базе данных
-func (m testModel) Table() string {
-	return "test_model_table"
-}
-
-// Connection Возвращает название подключения к БД
-func (m *testModel) Connection() (name string) {
-	return "xpg_connection"
-}
-
-// Columns Список полей, которые необходимо получать запросом SELECT
-func (m testModel) Columns() string {
-	return `*`
-}
-
-// Scan Реализация чтения строки из результата запроса
-func (m *testModel) Scan(rows *pgx.Rows) (tabler Tabler, err error) {
-	row := &testModel{}
-	err = rows.Scan(
-		&row.ID,
-		&row.ColumnOne,
-		&row.ColumnTwo,
-		&row.ColumnThree,
-		&row.CreatedAt,
-		&row.UpdatedAt,
-	)
-
-	return row, err
-}
-
-// Save Сохранение новой/измененной структуры в БД
-func (m *testModel) Save() (err error) {
-	data := map[string]interface{}{
-		"id":           m.ID,
-		"column_one":   m.ColumnOne,
-		"column_two":   m.ColumnTwo,
-		"column_three": m.ColumnThree,
-	}
-	m.ID, err = New(m).Write(data)
-	return err
-}
-
-// Delete Удаление записи из БД
-func (m *testModel) Delete() (err error) {
-	return New(m).Where("id", "=", m.ID).Delete()
-}
-
-/* ************************************* */
-func TestModel_Columns(t *testing.T) {
-	if (&testModel{}).Columns() != "*" {
-		t.Errorf(`Wrong Columns, expected *, real %s`, (&testModel{}).Columns())
-	}
-}
-func TestModel_Connection(t *testing.T) {
-	if (&testModel{}).Connection() != "xpg_connection" {
-		t.Errorf(`Wrong Connection, expected xpg_connection, real %s`, (&testModel{}).Connection())
-	}
-}
 func TestModel_Table(t *testing.T) {
-	if (&testModel{}).Table() != "test_model_table" {
-		t.Errorf(`Wrong Table, expected test_model_table, real %s`, (&testModel{}).Table())
-	}
+	assert.Equal(t, "test_users", (&test.User{}).Table())
 }
+
+func TestModel_Columns(t *testing.T) {
+	assert.Equal(t, `
+		"test_users"."id",
+		"test_users"."first_name",
+		"test_users"."second_name",
+		"test_users"."last_name",
+		"test_users"."email",
+		"test_users"."phone",
+		"test_users"."role_id",     
+		"test_users"."balance",     
+		"test_users"."created_at",
+		"test_users"."updated_at"
+	`, (&test.User{}).Columns())
+}
+
+func TestModel_Connection(t *testing.T) {
+	assert.Equal(t, "test", (&test.User{}).Connection())
+}
+
+func TestModel_Scan(t *testing.T) {
+	defer test.Connect()()
+
+	var user = &test.User{}
+	rows, err := xpg.DB("test").Query(context.Background(), `SELECT `+user.Columns()+` FROM `+user.Table()+` LIMIT 1`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	if rows.Next() {
+		row, err := user.Scan(rows)
+		require.NoError(t, err)
+		user = row.(*test.User)
+	}
+
+	assert.Greater(t, user.ID, int64(0))
+}
+
 func TestModel_Save(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
+	defer test.Connect()()
+
+	var user = &test.User{
+		FirstName:  "Pavel",
+		SecondName: "Vershinin",
+		LastName:   "Nikolaevich",
+		Email:      "xr.pavel@yandex.ru",
+		Phone:      "secret!",
+		RoleID:     1,
+		Balance:    200,
 	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	for i := 0; i <= 10; i++ {
-		var item = &testModel{}
-		item.ColumnOne = "one"
-		item.ColumnTwo = "two"
-		item.ColumnThree = int64(i)
-		if err := item.Save(); err != nil {
-			t.Fatal(err)
-		}
-	}
+
+	assert.NoError(t, user.Save())
+	assert.Greater(t, user.ID, int64(0))
 }
+
 func TestModel_Delete(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if rows, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").Select(); err != nil {
-		t.Error(err)
-	} else {
-		var items []*testModel
-		for row := range rows.Fetch() {
-			items = append(items, row.(*testModel))
-		}
-		for _, item := range items {
-			if err := item.Delete(); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
+	defer test.Connect()()
+
+	assert.NoError(t, xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete())
 }

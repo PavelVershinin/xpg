@@ -1,202 +1,133 @@
-package xpg
+package xpg_test
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/PavelVershinin/xpg"
+	"github.com/PavelVershinin/xpg/test"
+	"github.com/stretchr/testify/assert"
 )
 
+func TestConnection_Write(t *testing.T) {
+	defer test.Connect()()
+
+	id, err := xpg.New(&test.User{}).Write(map[string]interface{}{
+		"first_name":  "Pavel",
+		"second_name": "Vershinin",
+		"last_name":   "Nikolaevich",
+		"email":       "xr.pavel@yandex.ru",
+		"phone":       "secret!",
+		"role_id":     1,
+		"balance":     100,
+	})
+
+	assert.NoError(t, err)
+	assert.Greater(t, id, int64(0))
+}
+
 func TestConnection_Insert(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
+	defer test.Connect()()
+
+	var user = &test.User{
+		FirstName:  "Pavel",
+		SecondName: "Vershinin",
+		LastName:   "Nikolaevich",
+		Email:      "xr.pavel@yandex.ru",
+		Phone:      "secret!",
+		RoleID:     1,
+		Balance:    100,
 	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	for i := 0; i < 10; i++ {
-		_, err := New(&testModel{}).Insert(map[string]interface{}{
-			"column_one":   "insert",
-			"column_three": i,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
+
+	assert.NoError(t, user.Save())
+	assert.Greater(t, user.ID, int64(0))
 }
 
 func TestConnection_Update(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	for i := 0; i < 10; i++ {
-		err := New(&testModel{}).Where("id", "=", i).Update(map[string]interface{}{
-			"column_two":   "update",
-			"column_three": i + 1,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
+	defer test.Connect()()
 
-func TestConnection_Write(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	for i := 0; i < 10; i++ {
-		_, err := New(&testModel{}).Write(map[string]interface{}{
-			"id":           i,
-			"column_one":   "text",
-			"column_two":   "write",
-			"column_three": i,
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
+	err := xpg.New(&test.User{}).Where("id", "=", 1).Update(map[string]interface{}{
+		"role_id": 2,
+		"balance": 120,
+	})
+
+	assert.NoError(t, err)
 }
 
 func TestConnection_Delete(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
+	defer test.Connect()()
 
-	for i := 0; i < 10; i++ {
-		err := New(&testModel{}).Where("id", "=", i).Delete()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
+	err := xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete()
+
+	assert.NoError(t, err)
 }
 
 func TestConnection_Select(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
+	defer test.Connect()()
+
+	var user = &test.User{}
+	rows, err := xpg.New(user).Where("id", "=", 2).Select()
+	require.NoError(t, err)
+	defer rows.Close()
+
+	if rows.Next() {
+		row, err := rows.Get()
+		require.NoError(t, err)
+		user = row.(*test.User)
 	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if rows, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").Select(); err != nil {
-		t.Error(err)
-	} else {
-		for row := range rows.Fetch() {
-			t.Log(row.(*testModel).ColumnThree)
-		}
-	}
+
+	assert.Equal(t, int64(2), user.ID)
 }
 
 func TestConnection_Query(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
+	defer test.Connect()()
+
+	var user = &test.User{}
+	rows, err := xpg.New(user).Query("SELECT "+user.Columns()+" FROM "+user.Table()+" WHERE id = $1", 2)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	if rows.Next() {
+		row, err := rows.Get()
+		require.NoError(t, err)
+		user = row.(*test.User)
 	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if rows, err := New(&testModel{}).Query(`SELECT * FROM "test_model_table"`); err != nil {
-		t.Error(err)
-	} else {
-		for row := range rows.Fetch() {
-			t.Log(row.(*testModel).ColumnThree)
-		}
-	}
+
+	assert.Equal(t, int64(2), user.ID)
 }
 
 func TestConnection_First(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if res, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").First(); err != nil {
-		t.Error(err)
-	} else {
-		t.Log(res.(*testModel).ColumnThree)
-	}
+	defer test.Connect()()
+
+	row, err := xpg.New(&test.User{}).Where("id", "=", 2).First()
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), row.(*test.User).ID)
 }
 
 func TestConnection_Exists(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if ok, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").Exists(); err != nil {
-		t.Error(err)
-	} else {
-		t.Log(ok)
-	}
+	defer test.Connect()()
+
+	exists, err := xpg.New(&test.User{}).Exists()
+	require.NoError(t, err)
+
+	assert.Equal(t, true, exists)
 }
 
 func TestConnection_Count(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if cnt, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").Count(); err != nil {
-		t.Error(err)
-	} else {
-		t.Log(cnt)
-	}
+	defer test.Connect()()
+
+	count, err := xpg.New(&test.User{}).Count()
+	require.NoError(t, err)
+
+	assert.Greater(t, count, int64(0))
 }
 
 func TestConnection_Sum(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	if sum, err := New(&testModel{}).WhereBetween("column_three", 0, 10).OrderBy("column_three", "DESC").Sum("column_three"); err != nil {
-		t.Error(err)
-	} else {
-		t.Log(sum)
-	}
-}
+	defer test.Connect()()
 
-func TestConnection_WhereIn2(t *testing.T) {
-	if err := testConnect(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-	var in = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	if sum, err := New(&testModel{}).WhereIn("column_three", (&WhereInValues{}).Int(in...)).OrderBy("column_three", "DESC").Sum("column_three"); err != nil {
-		t.Error(err)
-	} else {
-		t.Log(sum)
-	}
+	sum, err := xpg.New(&test.User{}).Sum("balance")
+	require.NoError(t, err)
+
+	assert.Greater(t, sum, float64(0))
 }

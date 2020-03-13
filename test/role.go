@@ -1,58 +1,59 @@
-package migrations
+package test
 
 import (
 	"github.com/PavelVershinin/xpg"
 	"github.com/jackc/pgx"
 )
 
-type migration struct {
+type Role struct {
 	xpg.Model
-	File       string `xpg:"file VARCHAR(25) NOT NULL DEFAULT ''"`
-	connection string
+	Name string `xpg:"name VARCHAR(50) NOT NULL DEFAULT ''"`
 }
 
 // Table Возвращает название таблицы в базе данных
-func (m migration) Table() string {
-	return "xpg_migrations"
+func (r Role) Table() string {
+	return "test_roles"
 }
 
 // Columns Список полей, которые необходимо получать запросом SELECT
-func (m migration) Columns() string {
+func (r Role) Columns() string {
 	return `
-		"id",
-		"file",
-		"created_at",
-		"updated_at"
+		"test_roles"."id",
+		"test_roles"."name",
+		"test_roles"."created_at",
+		"test_roles"."updated_at"
 	`
 }
 
 // Connection Возвращает название подключения к БД
-func (m *migration) Connection() (name string) {
-	return m.connection
-}
-
-func (m *migration) SetConnection(name string) {
-	m.connection = name
+func (r *Role) Connection() (name string) {
+	return "test"
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (m *migration) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
-	row := &migration{}
+func (r *Role) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+	row := &Role{}
 	err = rows.Scan(
 		&row.ID,
-		&row.File,
+		&row.Name,
 		&row.CreatedAt,
 		&row.UpdatedAt,
 	)
+
 	return row, err
 }
 
 // Save Сохранение новой/измененной структуры в БД
-func (m *migration) Save() (err error) {
+func (r *Role) Save() (err error) {
 	data := map[string]interface{}{
-		"id":   m.ID,
-		"file": m.File,
+		"id":   r.ID,
+		"name": r.Name,
 	}
-	m.ID, err = xpg.New(m).Write(data)
+	r.ID, err = xpg.New(r).Write(data)
 	return err
+}
+
+// Delete Удаление записи из БД
+func (r *Role) Delete() (err error) {
+	return xpg.New(r).Where("id", "=", r.ID).Delete()
 }

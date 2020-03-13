@@ -172,11 +172,7 @@ func (c *Connection) OrWhereNotIn(column string, values *WhereInValues) *Connect
 
 // GroupBy Группировка по колонкам
 func (c *Connection) GroupBy(column string, columns ...string) *Connection {
-	for _, column := range append([]string{column}, columns...) {
-		var sql bytes.Buffer
-		sql.WriteString(column)
-		c.groupBy = append(c.groupBy, sql.String())
-	}
+	c.groupBy = append(c.groupBy, append([]string{column}, columns...)...)
 	return c
 }
 
@@ -281,9 +277,13 @@ func (c *Connection) buildWhere(args []interface{}) (string, []interface{}) {
 					query.WriteString(where.logic)
 				}
 				if where.raw.sql == "" {
-					query.WriteString(`"`)
+					if !strings.HasPrefix(where.column, `"`) {
+						query.WriteString(`"`)
+					}
 					query.WriteString(where.column)
-					query.WriteString(`"`)
+					if !strings.HasSuffix(where.column, `"`) {
+						query.WriteString(`"`)
+					}
 					switch where.operator {
 					case "IN":
 						var sql string
@@ -349,7 +349,7 @@ func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
 				args = append(args, arg)
 				sql = strings.Replace(sql, "$"+strconv.Itoa(j+1), "$"+strconv.Itoa(len(args)), -1)
 			}
-			query.WriteString("\t")
+			query.WriteString("\t ")
 			if i > 0 {
 				query.WriteString("UNION ")
 				if union.all {
@@ -359,7 +359,7 @@ func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
 			query.WriteString(sql)
 			query.WriteString("\n")
 		}
-		query.WriteString(`) AS "xpg_union_`)
+		query.WriteString(`) AS "`)
 	} else {
 		query.WriteString(`"`)
 	}

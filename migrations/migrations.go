@@ -1,8 +1,8 @@
 package migrations
 
 import (
+	"context"
 	"errors"
-	"github.com/PavelVershinin/xpg"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/PavelVershinin/xpg"
 )
 
 // Down выполнит SQL запросы из файлов отката миграций
@@ -65,12 +67,12 @@ func Down(connectionName string, to int) error {
 		}
 		sql := strings.TrimSpace(string(b))
 		if sql != "" {
-			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
+			if _, err := xpg.DB(connectionName).Exec(context.Background(), sql); err != nil {
 				return err
 			}
-			log.Printf("%s executed!\n", strconv.Itoa(fileNum) + "_down.sql")
+			log.Printf("%s executed!\n", strconv.Itoa(fileNum)+"_down.sql")
 		}
-		if err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(fileNum) + "_up.sql").Delete(); err != nil {
+		if err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(fileNum)+"_up.sql").Delete(); err != nil {
 			return err
 		}
 	}
@@ -134,10 +136,10 @@ func Up(connectionName string, to int) error {
 		}
 		sql := strings.TrimSpace(string(b))
 		if sql != "" {
-			if _, err := xpg.DB(connectionName).Exec(sql); err != nil {
+			if _, err := xpg.DB(connectionName).Exec(context.Background(), sql); err != nil {
 				return err
 			}
-			log.Printf("%s executed!\n", strconv.Itoa(fileNum) + "_up.sql")
+			log.Printf("%s executed!\n", strconv.Itoa(fileNum)+"_up.sql")
 		}
 		row := &migration{}
 		row.SetConnection(connectionName)
@@ -190,7 +192,7 @@ func Restore(tabler xpg.Tabler) error {
 	}
 
 	if !exists {
-		_, err := xpg.DB(tabler.Connection()).Exec(`CREATE TABLE "` + tableName + `" (` + strings.Join(columns, ", ") + `)`)
+		_, err := xpg.DB(tabler.Connection()).Exec(context.Background(), `CREATE TABLE "`+tableName+`" (`+strings.Join(columns, ", ")+`)`)
 		return err
 	}
 
@@ -208,7 +210,7 @@ func Restore(tabler xpg.Tabler) error {
 			}
 		}
 		if !exists {
-			if _, err := xpg.DB(tabler.Connection()).Exec(`ALTER TABLE "` + tableName + `" ADD COLUMN ` + column); err != nil {
+			if _, err := xpg.DB(tabler.Connection()).Exec(context.Background(), `ALTER TABLE "`+tableName+`" ADD COLUMN `+column); err != nil {
 				return err
 			}
 		}

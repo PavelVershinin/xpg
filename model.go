@@ -29,7 +29,7 @@ func (m *Model) Connection() (name string) {
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (m *Model) Scan(rows *pgx.Rows) (tabler Tabler, err error) {
+func (m *Model) Scan(rows pgx.Rows) (tabler Tabler, err error) {
 	row := &Model{}
 	err = rows.Scan(
 		&row.ID,

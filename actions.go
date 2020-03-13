@@ -12,19 +12,19 @@ import (
 func (c *Connection) Write(data map[string]interface{}) (id int64, err error) {
 	var updateID int64
 	if id, ok := data["id"]; ok {
-		switch id.(type) {
+		switch aId := id.(type) {
 		case int64:
-			updateID = id.(int64)
+			updateID = aId
 		case int32:
-			updateID = int64(id.(int32))
+			updateID = int64(aId)
 		case int:
-			updateID = int64(id.(int))
+			updateID = int64(aId)
 		case uint64:
-			updateID = int64(id.(uint64))
+			updateID = int64(aId)
 		case uint32:
-			updateID = int64(id.(uint32))
+			updateID = int64(aId)
 		case uint:
-			updateID = int64(id.(uint))
+			updateID = int64(aId)
 		default:
 			return 0, errors.New("xpg: Unsupported type of column id")
 		}
@@ -70,7 +70,7 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 	sql.WriteString(strings.Join(columns, `","`))
 	sql.WriteString(`"`)
 	sql.WriteString(") VALUES (")
-	sql.WriteString(strings.Join(values, ", "))
+	sql.WriteString(strings.Join(values, ","))
 	sql.WriteString(")")
 
 	sql.WriteString(` RETURNING "id"`)
@@ -96,7 +96,7 @@ func (c *Connection) Update(data map[string]interface{}) (err error) {
 		columns.WriteString(`"`)
 		columns.WriteString(column)
 		columns.WriteString(`"`)
-		columns.WriteString(" = $")
+		columns.WriteString("=$")
 		columns.WriteString(strconv.Itoa(len(args)))
 		columns.WriteString(", ")
 	}
@@ -105,7 +105,7 @@ func (c *Connection) Update(data map[string]interface{}) (err error) {
 	columns.WriteString(`"`)
 	columns.WriteString("updated_at")
 	columns.WriteString(`"`)
-	columns.WriteString(" = $")
+	columns.WriteString("=$")
 	columns.WriteString(strconv.Itoa(len(args)))
 
 	where, args := c.buildWhere(args)
@@ -118,7 +118,7 @@ func (c *Connection) Update(data map[string]interface{}) (err error) {
 	sql.Write(columns.Bytes())
 	sql.WriteString(where)
 
-	_, err = c.conn.Exec(sql.String(), args...)
+	_, err = c.conn.Exec(c.ctx, sql.String(), args...)
 	return err
 }
 
@@ -133,7 +133,7 @@ func (c *Connection) Delete() (err error) {
 	query.WriteString(`"`)
 	query.WriteString(where)
 
-	_, err = c.conn.Exec(query.String(), args...)
+	_, err = c.conn.Exec(c.ctx, query.String(), args...)
 	return err
 }
 
@@ -145,7 +145,7 @@ func (c *Connection) Select() (rows *Rows, err error) {
 
 // Query запрос к БД
 func (c *Connection) Query(query string, args ...interface{}) (rows *Rows, err error) {
-	r, err := c.conn.Query(query, args...)
+	r, err := c.conn.Query(c.ctx, query, args...)
 	if err == nil {
 		rows = &Rows{}
 		rows.conn = c
