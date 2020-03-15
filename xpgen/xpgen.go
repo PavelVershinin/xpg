@@ -128,9 +128,9 @@ func ({{.model_name}}) Connection() (name string) {
 }
 
 // Scan Реализация чтения строки из результата запроса
-func ({{.model_name}}) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+func ({{.model_name}}) Scan(rows pgx.Rows) (xpg.Tabler, error) {
 	row := &{{.model_name}}{}
-	err = rows.Scan(
+	err := rows.Scan(
 		&row.ID,
 		{{range .model_columns}}&row.{{.}},
 		{{end}}&row.CreatedAt,
@@ -152,7 +152,7 @@ func ({{$modelLetter}} *{{.model_name}}) Save() (err error) {
 }
 
 // Delete Удаление записи из БД
-func ({{$modelLetter}} *{{.model_name}}) Delete() (err error) {
+func ({{$modelLetter}} *{{.model_name}}) Delete() error {
 	return xpg.New({{$modelLetter}}).Where("id", "=", {{$modelLetter}}.ID).Delete()
 }
 `

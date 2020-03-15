@@ -24,13 +24,13 @@ func (Role) Columns() string {
 
 // Connection Возвращает название подключения к БД
 func (Role) Connection() (name string) {
-	return "main"
+	return "test"
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (Role) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+func (Role) Scan(rows pgx.Rows) (xpg.Tabler, error) {
 	row := &Role{}
-	err = rows.Scan(
+	err := rows.Scan(
 		&row.ID,
 		&row.Name,
 		&row.CreatedAt,
@@ -51,6 +51,6 @@ func (r *Role) Save() (err error) {
 }
 
 // Delete Удаление записи из БД
-func (r *Role) Delete() (err error) {
+func (r *Role) Delete() error {
 	return xpg.New(r).Where("id", "=", r.ID).Delete()
 }

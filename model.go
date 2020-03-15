@@ -29,9 +29,9 @@ func (Model) Connection() (name string) {
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (Model) Scan(rows pgx.Rows) (tabler Tabler, err error) {
+func (Model) Scan(rows pgx.Rows) (Tabler, error) {
 	row := &Model{}
-	err = rows.Scan(
+	err := rows.Scan(
 		&row.ID,
 		//...
 		&row.CreatedAt,
@@ -52,6 +52,6 @@ func (m *Model) Save() (err error) {
 }
 
 // Delete Удаление записи из БД
-func (m *Model) Delete() (err error) {
+func (m *Model) Delete() error {
 	return New(m).Where("id", "=", m.ID).Delete()
 }
