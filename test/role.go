@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/PavelVershinin/xpg"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 )
 
 type Role struct {

@@ -3,7 +3,7 @@ package xpg
 import (
 	"context"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 )
 
 type whereRaw struct {

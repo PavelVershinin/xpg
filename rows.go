@@ -3,7 +3,7 @@ package xpg
 import (
 	"log"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 )
 
 // Rows Интерфейс для хранения результата запроса к БД

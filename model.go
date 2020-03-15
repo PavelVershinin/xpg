@@ -2,7 +2,7 @@ package xpg
 
 import (
 	"github.com/PavelVershinin/xpg/xpgtypes"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 )
 
 // Model базовая модель соответствующая минимально требуемой структуре Tabler

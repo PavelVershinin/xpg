@@ -1,6 +1,6 @@
 package xpg
 
-import "github.com/jackc/pgx"
+import "github.com/jackc/pgx/v4"
 
 // Tabler интерфейс модели
 type Tabler interface {
