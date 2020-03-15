@@ -14,22 +14,22 @@ type Model struct {
 }
 
 // Table Возвращает название таблицы в базе данных
-func (m Model) Table() string {
+func (Model) Table() string {
 	return "xpg_table"
 }
 
 // Columns Список полей, которые необходимо получать запросом SELECT
-func (m Model) Columns() string {
+func (Model) Columns() string {
 	return "*"
 }
 
 // Connection Возвращает название подключения к БД
-func (m *Model) Connection() (name string) {
+func (Model) Connection() (name string) {
 	return ""
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (m *Model) Scan(rows pgx.Rows) (tabler Tabler, err error) {
+func (Model) Scan(rows pgx.Rows) (tabler Tabler, err error) {
 	row := &Model{}
 	err = rows.Scan(
 		&row.ID,

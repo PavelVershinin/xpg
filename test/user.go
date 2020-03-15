@@ -17,12 +17,12 @@ type User struct {
 }
 
 // Table Возвращает название таблицы в базе данных
-func (u User) Table() string {
+func (User) Table() string {
 	return "test_users"
 }
 
 // Columns Список полей, которые необходимо получать запросом SELECT
-func (u User) Columns() string {
+func (User) Columns() string {
 	return `
 		"test_users"."id",
 		"test_users"."first_name",
@@ -38,12 +38,12 @@ func (u User) Columns() string {
 }
 
 // Connection Возвращает название подключения к БД
-func (u *User) Connection() (name string) {
+func (User) Connection() (name string) {
 	return "test"
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (u *User) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+func (User) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
 	row := &User{}
 	err = rows.Scan(
 		&row.ID,

@@ -11,27 +11,24 @@ type Role struct {
 }
 
 // Table Возвращает название таблицы в базе данных
-func (r Role) Table() string {
+func (Role) Table() string {
 	return "test_roles"
 }
 
 // Columns Список полей, которые необходимо получать запросом SELECT
-func (r Role) Columns() string {
+func (Role) Columns() string {
 	return `
-		"test_roles"."id",
-		"test_roles"."name",
-		"test_roles"."created_at",
-		"test_roles"."updated_at"
+		"test_roles"."name"
 	`
 }
 
 // Connection Возвращает название подключения к БД
-func (r *Role) Connection() (name string) {
-	return "test"
+func (Role) Connection() (name string) {
+	return "main"
 }
 
 // Scan Реализация чтения строки из результата запроса
-func (r *Role) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+func (Role) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
 	row := &Role{}
 	err = rows.Scan(
 		&row.ID,

@@ -98,7 +98,7 @@ func (c *Connection) Update(data map[string]interface{}) (err error) {
 		columns.WriteString(`"`)
 		columns.WriteString("=$")
 		columns.WriteString(strconv.Itoa(len(args)))
-		columns.WriteString(", ")
+		columns.WriteString(",")
 	}
 
 	args = append(args, time.Now())
