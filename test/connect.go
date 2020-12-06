@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -22,7 +23,7 @@ func Connect() func() {
 	}
 	config.LogLevel = pgx.LogLevelDebug
 
-	err = xpg.NewConnection("test", config, "")
+	err = xpg.NewConnection(context.Background(), "test", config, "")
 	if err != nil {
 		log.Fatal(err)
 	}

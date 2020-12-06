@@ -63,7 +63,7 @@ func (c *Connection) Close() error {
 	return c.conn.Close(c.ctx)
 }
 
-func newConn(conn *pgx.Conn, ctx context.Context, migrationsPath string) *Connection {
+func newConn(ctx context.Context, conn *pgx.Conn, migrationsPath string) *Connection {
 	connection := &Connection{}
 	connection.conn = conn
 	connection.ctx = ctx

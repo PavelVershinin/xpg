@@ -19,17 +19,16 @@ func init() {
 }
 
 // NewConnection Создаст новое подключение к БД
-func NewConnection(connectionName string, connConfig *pgx.ConnConfig, migrationsPath string) error {
-	ctx := context.Background()
+func NewConnection(ctx context.Context, connectionName string, connConfig *pgx.ConnConfig, migrationsPath string) error {
 	conn, err := pgx.ConnectConfig(ctx, connConfig)
 	if err != nil {
 		return fmt.Errorf("xpg: Unable to connection to database: %v\n", err)
 	}
-	return AddConnection(connectionName, conn, ctx, migrationsPath)
+	return AddConnection(ctx, connectionName, conn, migrationsPath)
 }
 
 // AddConnection Добавит существующее подключение в коллекцию
-func AddConnection(connectionName string, conn *pgx.Conn, ctx context.Context, migrationsPath string) error {
+func AddConnection(ctx context.Context, connectionName string, conn *pgx.Conn, migrationsPath string) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if c, ok := connections[connectionName]; ok && c != nil {
@@ -37,7 +36,7 @@ func AddConnection(connectionName string, conn *pgx.Conn, ctx context.Context, m
 			return fmt.Errorf("xpg: Unable to close database connection: %v\n", err)
 		}
 	}
-	connections[connectionName] = newConn(conn, ctx, migrationsPath)
+	connections[connectionName] = newConn(ctx, conn, migrationsPath)
 	return nil
 }
 
