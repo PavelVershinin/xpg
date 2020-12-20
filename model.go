@@ -1,6 +1,9 @@
 package xpg
 
 import (
+	"database/sql/driver"
+	"errors"
+
 	"github.com/PavelVershinin/xpg/xpgtypes"
 	"github.com/jackc/pgx/v4"
 )
@@ -11,6 +14,7 @@ type Model struct {
 	//...
 	CreatedAt xpgtypes.NullTime `json:"created_at"`
 	UpdatedAt xpgtypes.NullTime `json:"updated_at"`
+	Valid     bool              `json:"_"`
 }
 
 // Table Возвращает название таблицы в базе данных
@@ -54,4 +58,32 @@ func (m *Model) Save() (err error) {
 // Delete Удаление записи из БД
 func (m *Model) Delete() error {
 	return New(m).Where("id", "=", m.ID).Delete()
+}
+
+// Scan Реализация интерфейса sql.Scanner
+func (m *Model) Scan(src interface{}) error {
+	var ok bool
+	m.ID, ok = src.(int64)
+	if !ok {
+		return errors.New("can't assert interface to int64")
+	}
+	return nil
+}
+
+// Value Реализация интерфейса driver.Valuer
+func (m Model) Value() (driver.Value, error) {
+	return m.ID, nil
+}
+
+// DbTake Получение записи из БД
+func (m *Model) DbTake(force ...bool) error {
+	if m.ID > 0 && (!m.Valid || (len(force) > 0 && force[0])) {
+		t, err := New(m).Where("id", "=", m.ID).First()
+		if err != nil {
+			return err
+		}
+		*m = *t.(*Model)
+		m.Valid = true
+	}
+	return nil
 }

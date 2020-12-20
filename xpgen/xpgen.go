@@ -155,4 +155,17 @@ func ({{$modelLetter}} *{{.model_name}}) Save() (err error) {
 func ({{$modelLetter}} *{{.model_name}}) Delete() error {
 	return xpg.New({{$modelLetter}}).Where("id", "=", {{$modelLetter}}.ID).Delete()
 }
+
+// DbTake Получение записи из БД
+func ({{$modelLetter}} *{{.model_name}}) DbTake(force ...bool) error {
+	if {{$modelLetter}}.ID > 0 && (!{{$modelLetter}}.Valid || (len(force) > 0 && force[0])) {
+		row, err := xpg.New(&{{.model_name}}{}).Where("id", "=", {{$modelLetter}}.ID).First()
+		if err != nil {
+			return err
+		}
+		*{{$modelLetter}} = *row.(*{{.model_name}})
+		{{$modelLetter}}.Valid = true
+	}
+	return nil
+}
 `

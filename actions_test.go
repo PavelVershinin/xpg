@@ -1,6 +1,7 @@
 package xpg_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ func TestConnection_Write(t *testing.T) {
 		"last_name":   "Nikolaevich",
 		"email":       "xr.pavel@yandex.ru",
 		"phone":       "secret!",
-		"role_id":     1,
+		"role":        1,
 		"balance":     100,
 	})
 
@@ -30,13 +31,20 @@ func TestConnection_Write(t *testing.T) {
 func TestConnection_Insert(t *testing.T) {
 	defer test.Connect()()
 
+	var role = &test.Role{
+		Name: "Test 1",
+	}
+
+	assert.NoError(t, role.Save())
+	assert.Greater(t, role.ID, int64(0))
+
 	var user = &test.User{
 		FirstName:  "Pavel",
 		SecondName: "Vershinin",
 		LastName:   "Nikolaevich",
 		Email:      "xr.pavel@yandex.ru",
 		Phone:      "secret!",
-		RoleID:     1,
+		Role:       *role,
 		Balance:    100,
 	}
 
@@ -48,7 +56,7 @@ func TestConnection_Update(t *testing.T) {
 	defer test.Connect()()
 
 	err := xpg.New(&test.User{}).Where("id", "=", 1).Update(map[string]interface{}{
-		"role_id": 2,
+		"role":    2,
 		"balance": 120,
 	})
 
@@ -69,13 +77,17 @@ func TestConnection_Select(t *testing.T) {
 	var user = &test.User{}
 	rows, err := xpg.New(user).Where("id", "=", 2).Select()
 	require.NoError(t, err)
-	defer rows.Close()
 
 	if rows.Next() {
 		row, err := rows.Get()
 		require.NoError(t, err)
 		user = row.(*test.User)
 	}
+	rows.Close()
+
+	require.NoError(t, user.Role.DbTake())
+
+	log.Printf("%+v\n", user.Role)
 
 	assert.Equal(t, int64(2), user.ID)
 }

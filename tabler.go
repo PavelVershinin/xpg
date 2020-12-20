@@ -1,9 +1,16 @@
 package xpg
 
-import "github.com/jackc/pgx/v4"
+import (
+	"database/sql"
+	"database/sql/driver"
+
+	"github.com/jackc/pgx/v4"
+)
 
 // Tabler интерфейс модели
 type Tabler interface {
+	sql.Scanner
+	driver.Valuer
 	Table() string
 	Columns() string
 	Connection() string

@@ -18,7 +18,10 @@ func (Role) Table() string {
 // Columns Список полей, которые необходимо получать запросом SELECT
 func (Role) Columns() string {
 	return `
-		"test_roles"."name"
+		"test_roles"."id",
+		"test_roles"."name",     
+		"test_roles"."created_at",
+		"test_roles"."updated_at"
 	`
 }
 
@@ -53,4 +56,17 @@ func (r *Role) Save() (err error) {
 // Delete Удаление записи из БД
 func (r *Role) Delete() error {
 	return xpg.New(r).Where("id", "=", r.ID).Delete()
+}
+
+// DbTake Получение записи из БД
+func (r *Role) DbTake(force ...bool) error {
+	if r.ID > 0 && (!r.Valid || (len(force) > 0 && force[0])) {
+		row, err := xpg.New(&Role{}).Where("id", "=", r.ID).First()
+		if err != nil {
+			return err
+		}
+		*r = *row.(*Role)
+		r.Valid = true
+	}
+	return nil
 }

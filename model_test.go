@@ -23,7 +23,7 @@ func TestModel_Columns(t *testing.T) {
 		"test_users"."last_name",
 		"test_users"."email",
 		"test_users"."phone",
-		"test_users"."role_id",     
+		"test_users"."role",     
 		"test_users"."balance",     
 		"test_users"."created_at",
 		"test_users"."updated_at"
@@ -54,13 +54,20 @@ func TestModel_ScanRow(t *testing.T) {
 func TestModel_Save(t *testing.T) {
 	defer test.Connect()()
 
+	var role = &test.Role{
+		Name: "Test",
+	}
+
+	assert.NoError(t, role.Save())
+	assert.Greater(t, role.ID, int64(0))
+
 	var user = &test.User{
 		FirstName:  "Pavel",
 		SecondName: "Vershinin",
 		LastName:   "Nikolaevich",
 		Email:      "xr.pavel@yandex.ru",
 		Phone:      "secret!",
-		RoleID:     1,
+		Role:       *role,
 		Balance:    200,
 	}
 
