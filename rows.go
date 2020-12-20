@@ -14,7 +14,7 @@ type Rows struct {
 
 // Get Получение очередной строки
 func (r *Rows) Get() (Tabler, error) {
-	return r.conn.tabler.Scan(r.Rows)
+	return r.conn.tabler.ScanRow(r.Rows)
 }
 
 // Fetch Метод для перебора for row := range res.Fetch() {

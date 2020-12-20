@@ -127,8 +127,8 @@ func ({{.model_name}}) Connection() (name string) {
 	return "{{.connection_name}}"
 }
 
-// Scan Реализация чтения строки из результата запроса
-func ({{.model_name}}) Scan(rows pgx.Rows) (xpg.Tabler, error) {
+// ScanRow Реализация чтения строки из результата запроса
+func ({{.model_name}}) ScanRow(rows pgx.Rows) (xpg.Tabler, error) {
 	row := &{{.model_name}}{}
 	err := rows.Scan(
 		&row.ID,

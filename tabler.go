@@ -7,7 +7,7 @@ type Tabler interface {
 	Table() string
 	Columns() string
 	Connection() string
-	Scan(rows pgx.Rows) (Tabler, error)
+	ScanRow(rows pgx.Rows) (Tabler, error)
 	Save() error
 	Delete() error
 }

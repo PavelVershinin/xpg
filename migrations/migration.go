@@ -35,8 +35,8 @@ func (m *migration) SetConnection(name string) {
 	m.connection = name
 }
 
-// Scan Реализация чтения строки из результата запроса
-func (m *migration) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+// ScanRow Реализация чтения строки из результата запроса
+func (m *migration) ScanRow(rows pgx.Rows) (tabler xpg.Tabler, err error) {
 	row := &migration{}
 	err = rows.Scan(
 		&row.ID,

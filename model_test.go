@@ -34,7 +34,7 @@ func TestModel_Connection(t *testing.T) {
 	assert.Equal(t, "test", (&test.User{}).Connection())
 }
 
-func TestModel_Scan(t *testing.T) {
+func TestModel_ScanRow(t *testing.T) {
 	defer test.Connect()()
 
 	var user = &test.User{}
@@ -43,7 +43,7 @@ func TestModel_Scan(t *testing.T) {
 	defer rows.Close()
 
 	if rows.Next() {
-		row, err := user.Scan(rows)
+		row, err := user.ScanRow(rows)
 		require.NoError(t, err)
 		user = row.(*test.User)
 	}

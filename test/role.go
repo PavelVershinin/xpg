@@ -27,8 +27,8 @@ func (Role) Connection() (name string) {
 	return "test"
 }
 
-// Scan Реализация чтения строки из результата запроса
-func (Role) Scan(rows pgx.Rows) (xpg.Tabler, error) {
+// ScanRow Реализация чтения строки из результата запроса
+func (Role) ScanRow(rows pgx.Rows) (xpg.Tabler, error) {
 	row := &Role{}
 	err := rows.Scan(
 		&row.ID,

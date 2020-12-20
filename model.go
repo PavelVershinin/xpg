@@ -28,8 +28,8 @@ func (Model) Connection() (name string) {
 	return ""
 }
 
-// Scan Реализация чтения строки из результата запроса
-func (Model) Scan(rows pgx.Rows) (Tabler, error) {
+// ScanRow Реализация чтения строки из результата запроса
+func (Model) ScanRow(rows pgx.Rows) (Tabler, error) {
 	row := &Model{}
 	err := rows.Scan(
 		&row.ID,

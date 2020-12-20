@@ -42,8 +42,8 @@ func (User) Connection() (name string) {
 	return "test"
 }
 
-// Scan Реализация чтения строки из результата запроса
-func (User) Scan(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+// ScanRow Реализация чтения строки из результата запроса
+func (User) ScanRow(rows pgx.Rows) (tabler xpg.Tabler, err error) {
 	row := &User{}
 	err = rows.Scan(
 		&row.ID,
