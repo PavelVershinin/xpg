@@ -29,6 +29,14 @@ func (c *Connection) Validation(data map[string]interface{}) (validData map[stri
 			var validValuesBool []bool
 			var validValuesTime []xpgtypes.NullTime
 
+			if column.NotNull {
+				validValuesInt = make([]int64, 0)
+				validValuesFloat = make([]float64, 0)
+				validValuesString = make([]string, 0)
+				validValuesBool = make([]bool, 0)
+				validValuesTime = make([]xpgtypes.NullTime, 0)
+			}
+
 			for _, value := range toArray(value) {
 				switch typeName {
 				case "bigint":
@@ -188,14 +196,14 @@ func toInteger(value interface{}) int64 {
 		}
 	case reflect.Struct:
 		if valueOf.IsValid() {
-			field := valueOf.Elem().FieldByName("ID")
+			field := valueOf.FieldByName("ID")
 			if field.IsValid() {
 				return field.Int()
 			}
 		}
 	case reflect.Ptr:
 		if valueOf.Elem().IsValid() {
-			field := valueOf.FieldByName("ID")
+			field := valueOf.Elem().FieldByName("ID")
 			if field.IsValid() {
 				return field.Int()
 			}
