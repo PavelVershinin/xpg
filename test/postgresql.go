@@ -31,7 +31,7 @@ func Start(ctx context.Context) (*embeddedpostgres.EmbeddedPostgres, error) {
 	return pg, nil
 }
 
-func Restore(ctx context.Context, rolesNum, usersNum int) error {
+func Restore(ctx context.Context, makeRowsNum int) error {
 	if err := migrations.Restore(ctx, &User{}); err != nil {
 		return err
 	}
@@ -39,22 +39,23 @@ func Restore(ctx context.Context, rolesNum, usersNum int) error {
 		return err
 	}
 
-	for i := 1; i <= rolesNum; i++ {
-		role := &Role{
+	var roles = make([]*Role, makeRowsNum)
+	for i := 1; i <= makeRowsNum; i++ {
+		roles[i-1] = &Role{
 			Name: "Test " + strconv.Itoa(i),
 		}
-		if err := role.Save(ctx); err != nil {
+		if err := roles[i-1].Save(ctx); err != nil {
 			return err
 		}
 	}
-	for i := 1; i <= usersNum; i++ {
+	for i := 1; i <= makeRowsNum; i++ {
 		user := &User{
 			FirstName:  "FirstName " + strconv.Itoa(i),
 			SecondName: "SecondName " + strconv.Itoa(i),
 			LastName:   "LastName " + strconv.Itoa(i),
 			Email:      "my@email.ru",
 			Phone:      "secret!",
-			RoleID:     int64(i),
+			Role:       roles[i-1],
 			Balance:    100,
 		}
 		if err := user.Save(ctx); err != nil {

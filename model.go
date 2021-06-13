@@ -11,11 +11,10 @@ import (
 
 // Model базовая модель соответствующая минимально требуемой структуре Modeler
 type Model struct {
-	ID int64 `json:"id"`
+	ID int64
 	//...
-	CreatedAt xpgtypes.NullTime `json:"created_at"`
-	UpdatedAt xpgtypes.NullTime `json:"updated_at"`
-	Valid     bool              `json:"_"`
+	CreatedAt xpgtypes.NullTime
+	UpdatedAt xpgtypes.NullTime
 }
 
 // Table Возвращает название таблицы в базе данных

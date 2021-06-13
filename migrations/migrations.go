@@ -170,7 +170,7 @@ func Restore(ctx context.Context, model xpg.Modeler) error {
 			}
 		}
 	} else {
-		return errors.New("migrations: Tabler is not valid")
+		return errors.New("migrations: Modeler is not valid")
 	}
 
 	columns = append(columns, []string{

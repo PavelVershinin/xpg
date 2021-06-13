@@ -40,7 +40,7 @@ func TestModel_ScanRow(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 1))
+	require.NoError(t, test.Restore(ctx, 1))
 
 	user := &test.User{}
 	rows, err := xpg.DB("test").Query(context.Background(), `SELECT `+user.Columns()+` FROM `+user.Table()+` LIMIT 1`)
@@ -63,7 +63,7 @@ func TestModel_Save(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 0))
+	require.NoError(t, test.Restore(ctx, 0))
 
 	role := &test.Role{
 		Name: "Test",
@@ -78,7 +78,7 @@ func TestModel_Save(t *testing.T) {
 		LastName:   "Nikolaevich",
 		Email:      "xr.pavel@yandex.ru",
 		Phone:      "secret!",
-		RoleID:     role.ID,
+		Role:       role,
 		Balance:    200,
 	}
 
@@ -93,7 +93,7 @@ func TestModel_Delete(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 5))
+	require.NoError(t, test.Restore(ctx, 5))
 
 	require.NoError(t, xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete(ctx))
 }

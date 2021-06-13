@@ -19,7 +19,7 @@ func TestConnection_Write(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 0))
+	require.NoError(t, test.Restore(ctx, 0))
 
 	id, err := xpg.New(&test.User{}).Write(ctx, map[string]interface{}{
 		"first_name":  "Pavel",
@@ -42,14 +42,14 @@ func TestConnection_Insert(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 0))
+	require.NoError(t, test.Restore(ctx, 2))
 
 	var role = &test.Role{
 		Name: "Test 1",
 	}
 
 	assert.NoError(t, role.Save(ctx))
-	assert.Equal(t, role.ID, int64(1))
+	assert.Equal(t, role.ID, int64(3))
 
 	var user = &test.User{
 		FirstName:  "Pavel",
@@ -57,12 +57,13 @@ func TestConnection_Insert(t *testing.T) {
 		LastName:   "Nikolaevich",
 		Email:      "xr.pavel@yandex.ru",
 		Phone:      "secret!",
-		RoleID:     role.ID,
+		Role:       role,
 		Balance:    100,
 	}
 
 	assert.NoError(t, user.Save(ctx))
-	assert.Equal(t, user.ID, int64(1))
+	assert.Equal(t, user.ID, int64(3))
+	assert.Equal(t, user.Role.ID, int64(3))
 }
 
 func TestConnection_Update(t *testing.T) {
@@ -72,7 +73,7 @@ func TestConnection_Update(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 1, 1))
+	require.NoError(t, test.Restore(ctx, 1))
 
 	err = xpg.New(&test.User{}).Where("id", "=", 1).Update(ctx, map[string]interface{}{
 		"role_id": 2,
@@ -89,7 +90,7 @@ func TestConnection_Delete(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 5))
+	require.NoError(t, test.Restore(ctx, 5))
 
 	assert.NoError(t, xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete(ctx))
 }
@@ -101,7 +102,7 @@ func TestConnection_Select(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 2))
+	require.NoError(t, test.Restore(ctx, 2))
 
 	var user = &test.User{}
 	rows, err := xpg.New(user).Where("id", "=", 2).Select(ctx)
@@ -124,7 +125,7 @@ func TestConnection_Query(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 2))
+	require.NoError(t, test.Restore(ctx, 2))
 
 	var user = &test.User{}
 	rows, err := xpg.New(user).Query(ctx, "SELECT "+user.Columns()+" FROM "+user.Table()+" WHERE id = $1", 2)
@@ -147,7 +148,7 @@ func TestConnection_First(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 2))
+	require.NoError(t, test.Restore(ctx, 2))
 
 	row, err := xpg.New(&test.User{}).Where("id", "=", 2).First(ctx)
 	require.NoError(t, err)
@@ -161,7 +162,7 @@ func TestConnection_Exists(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 2))
+	require.NoError(t, test.Restore(ctx, 2))
 
 	exists, err := xpg.New(&test.User{}).Where("id", "=", 2).Exists(ctx)
 	require.NoError(t, err)
@@ -176,7 +177,7 @@ func TestConnection_Count(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 4))
+	require.NoError(t, test.Restore(ctx, 4))
 
 	count, err := xpg.New(&test.User{}).Count(ctx)
 	require.NoError(t, err)
@@ -191,7 +192,7 @@ func TestConnection_Sum(t *testing.T) {
 	defer func() {
 		require.NoError(t, test.Stop(pg))
 	}()
-	require.NoError(t, test.Restore(ctx, 0, 4))
+	require.NoError(t, test.Restore(ctx, 4))
 
 	sum, err := xpg.New(&test.User{}).Sum(ctx, "balance")
 	require.NoError(t, err)

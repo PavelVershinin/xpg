@@ -14,7 +14,7 @@ type User struct {
 	LastName   string `xpg:"last_name VARCHAR(50) NOT NULL DEFAULT ''"`
 	Email      string `xpg:"email VARCHAR(254) NOT NULL DEFAULT ''"`
 	Phone      string `xpg:"phone VARCHAR(18) NOT NULL DEFAULT ''"`
-	RoleID     int64  `xpg:"role_id BIGINT NOT NULL DEFAULT 0"`
+	Role       *Role  `xpg:"role_id BIGINT NOT NULL DEFAULT 0"`
 	Balance    int64  `xpg:"balance BIGINT NOT NULL DEFAULT 0"`
 }
 
@@ -54,7 +54,7 @@ func (User) ScanRow(rows pgx.Rows) (xpg.Modeler, error) {
 		&row.LastName,
 		&row.Email,
 		&row.Phone,
-		&row.RoleID,
+		&row.Role,
 		&row.Balance,
 		&row.CreatedAt,
 		&row.UpdatedAt,
@@ -73,7 +73,7 @@ func (u *User) Save(ctx context.Context) error {
 		"last_name":   u.LastName,
 		"email":       u.Email,
 		"phone":       u.Phone,
-		"role_id":     u.RoleID,
+		"role_id":     u.Role,
 		"balance":     u.Balance,
 	}
 	u.ID, err = xpg.New(u).Write(ctx, data)
