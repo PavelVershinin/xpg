@@ -1,6 +1,8 @@
 package test
 
 import (
+	"context"
+
 	"github.com/PavelVershinin/xpg"
 	"github.com/jackc/pgx/v4"
 )
@@ -12,7 +14,7 @@ type User struct {
 	LastName   string `xpg:"last_name VARCHAR(50) NOT NULL DEFAULT ''"`
 	Email      string `xpg:"email VARCHAR(254) NOT NULL DEFAULT ''"`
 	Phone      string `xpg:"phone VARCHAR(18) NOT NULL DEFAULT ''"`
-	Role       Role   `xpg:"role BIGINT NOT NULL DEFAULT 0"`
+	RoleID     int64  `xpg:"role_id BIGINT NOT NULL DEFAULT 0"`
 	Balance    int64  `xpg:"balance BIGINT NOT NULL DEFAULT 0"`
 }
 
@@ -30,30 +32,29 @@ func (User) Columns() string {
 		"test_users"."last_name",
 		"test_users"."email",
 		"test_users"."phone",
-		"test_users"."role",     
+		"test_users"."role_id",     
 		"test_users"."balance",     
 		"test_users"."created_at",
 		"test_users"."updated_at"
 	`
 }
 
-// Connection Возвращает название подключения к БД
-func (User) Connection() (name string) {
+func (User) PoolName() (name string) {
 	return "test"
 }
 
 // ScanRow Реализация чтения строки из результата запроса
-func (User) ScanRow(rows pgx.Rows) (tabler xpg.Tabler, err error) {
+func (User) ScanRow(rows pgx.Rows) (xpg.Modeler, error) {
 	row := &User{}
 
-	err = rows.Scan(
+	err := rows.Scan(
 		&row.ID,
 		&row.FirstName,
 		&row.SecondName,
 		&row.LastName,
 		&row.Email,
 		&row.Phone,
-		&row.Role,
+		&row.RoleID,
 		&row.Balance,
 		&row.CreatedAt,
 		&row.UpdatedAt,
@@ -63,7 +64,8 @@ func (User) ScanRow(rows pgx.Rows) (tabler xpg.Tabler, err error) {
 }
 
 // Save Сохранение новой/измененной структуры в БД
-func (u *User) Save() (err error) {
+func (u *User) Save(ctx context.Context) error {
+	var err error
 	data := map[string]interface{}{
 		"id":          u.ID,
 		"first_name":  u.FirstName,
@@ -71,14 +73,14 @@ func (u *User) Save() (err error) {
 		"last_name":   u.LastName,
 		"email":       u.Email,
 		"phone":       u.Phone,
-		"role":        u.Role,
+		"role_id":     u.RoleID,
 		"balance":     u.Balance,
 	}
-	u.ID, err = xpg.New(u).Write(data)
+	u.ID, err = xpg.New(u).Write(ctx, data)
 	return err
 }
 
 // Delete Удаление записи из БД
-func (u *User) Delete() (err error) {
-	return xpg.New(u).Where("id", "=", u.ID).Delete()
+func (u *User) Delete(ctx context.Context) error {
+	return xpg.New(u).Where("id", "=", u.ID).Delete(ctx)
 }

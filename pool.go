@@ -1,9 +1,7 @@
 package xpg
 
 import (
-	"context"
-
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type whereRaw struct {
@@ -32,7 +30,7 @@ type distinct struct {
 
 type union struct {
 	all  bool
-	conn *Connection
+	pool *Pool
 }
 
 type join struct {
@@ -42,11 +40,10 @@ type join struct {
 	condition string
 }
 
-// Connection соединение
-type Connection struct {
-	conn           *pgx.Conn
-	ctx            context.Context
-	tabler         Tabler
+// Pool пул соединений
+type Pool struct {
+	pool           *pgxpool.Pool
+	model          Modeler
 	wheres         []groupWhere
 	limit          int
 	offset         int
@@ -59,23 +56,23 @@ type Connection struct {
 }
 
 // Close Закроет подключение к БД
-func (c *Connection) Close() error {
-	return c.conn.Close(c.ctx)
+func (p *Pool) Close() {
+	if p != nil && p.pool != nil {
+		p.pool.Close()
+	}
 }
 
-func newConn(ctx context.Context, conn *pgx.Conn, migrationsPath string) *Connection {
-	connection := &Connection{}
-	connection.conn = conn
-	connection.ctx = ctx
-	connection.migrationsPath = migrationsPath
-	return connection
+func addPool(pool *pgxpool.Pool, migrationsPath string) *Pool {
+	p := &Pool{}
+	p.pool = pool
+	p.migrationsPath = migrationsPath
+	return p
 }
 
-func (c *Connection) new(tabler Tabler) (conn *Connection) {
-	conn = &Connection{}
-	conn.conn = c.conn
-	conn.ctx = c.ctx
-	conn.migrationsPath = c.migrationsPath
-	conn.tabler = tabler
-	return
+func (p *Pool) new(model Modeler) *Pool {
+	np := &Pool{}
+	np.pool = p.pool
+	np.migrationsPath = p.migrationsPath
+	np.model = model
+	return np
 }

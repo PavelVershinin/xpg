@@ -8,36 +8,41 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/PavelVershinin/xpg/test"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestModel_Table(t *testing.T) {
-	assert.Equal(t, "test_users", (&test.User{}).Table())
+	require.Equal(t, "test_users", (&test.User{}).Table())
 }
 
 func TestModel_Columns(t *testing.T) {
-	assert.Equal(t, `
+	require.Equal(t, test.ClearQuery(`
 		"test_users"."id",
 		"test_users"."first_name",
 		"test_users"."second_name",
 		"test_users"."last_name",
 		"test_users"."email",
 		"test_users"."phone",
-		"test_users"."role",     
+		"test_users"."role_id",     
 		"test_users"."balance",     
 		"test_users"."created_at",
 		"test_users"."updated_at"
-	`, (&test.User{}).Columns())
+	`), test.ClearQuery((&test.User{}).Columns()))
 }
 
 func TestModel_Connection(t *testing.T) {
-	assert.Equal(t, "test", (&test.User{}).Connection())
+	require.Equal(t, "test", (&test.User{}).PoolName())
 }
 
 func TestModel_ScanRow(t *testing.T) {
-	defer test.Connect()()
+	ctx := context.Background()
+	pg, err := test.Start(ctx)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, test.Stop(pg))
+	}()
+	require.NoError(t, test.Restore(ctx, 0, 1))
 
-	var user = &test.User{}
+	user := &test.User{}
 	rows, err := xpg.DB("test").Query(context.Background(), `SELECT `+user.Columns()+` FROM `+user.Table()+` LIMIT 1`)
 	require.NoError(t, err)
 	defer rows.Close()
@@ -48,35 +53,47 @@ func TestModel_ScanRow(t *testing.T) {
 		user = row.(*test.User)
 	}
 
-	assert.Greater(t, user.ID, int64(0))
+	require.Equal(t, user.ID, int64(1))
 }
 
 func TestModel_Save(t *testing.T) {
-	defer test.Connect()()
+	ctx := context.Background()
+	pg, err := test.Start(ctx)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, test.Stop(pg))
+	}()
+	require.NoError(t, test.Restore(ctx, 0, 0))
 
-	var role = &test.Role{
+	role := &test.Role{
 		Name: "Test",
 	}
 
-	assert.NoError(t, role.Save())
-	assert.Greater(t, role.ID, int64(0))
+	require.NoError(t, role.Save(ctx))
+	require.Equal(t, role.ID, int64(1))
 
-	var user = &test.User{
+	user := &test.User{
 		FirstName:  "Pavel",
 		SecondName: "Vershinin",
 		LastName:   "Nikolaevich",
 		Email:      "xr.pavel@yandex.ru",
 		Phone:      "secret!",
-		Role:       *role,
+		RoleID:     role.ID,
 		Balance:    200,
 	}
 
-	assert.NoError(t, user.Save())
-	assert.Greater(t, user.ID, int64(0))
+	require.NoError(t, user.Save(ctx))
+	require.Equal(t, user.ID, int64(1))
 }
 
 func TestModel_Delete(t *testing.T) {
-	defer test.Connect()()
+	ctx := context.Background()
+	pg, err := test.Start(ctx)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, test.Stop(pg))
+	}()
+	require.NoError(t, test.Restore(ctx, 0, 5))
 
-	assert.NoError(t, xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete())
+	require.NoError(t, xpg.New(&test.User{}).WhereNotIn("id", (&xpg.WhereInValues{}).Int64(1, 2)).Delete(ctx))
 }

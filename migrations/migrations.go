@@ -16,18 +16,18 @@ import (
 )
 
 // Down выполнит SQL запросы из файлов отката миграций
-func Down(connectionName string, to int) error {
+func Down(ctx context.Context, poolName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_down\.sql$`)
-	var migrationPath = xpg.MigrationsPath(connectionName)
+	var migrationPath = xpg.MigrationsPath(poolName)
 	var migrations []int
 	var objMigration = &migration{}
-	objMigration.SetConnection(connectionName)
-	if err := Restore(objMigration); err != nil {
+	objMigration.SetPool(poolName)
+	if err := Restore(ctx, objMigration); err != nil {
 		return err
 	}
 
 	var from int
-	if res, err := xpg.New(objMigration).OrderBy("created_at", "DESC").First(); err != nil && err.Error() != "xpg: No records found" {
+	if res, err := xpg.New(objMigration).OrderBy("created_at", "DESC").First(ctx); err != nil && err.Error() != "xpg: No records found" {
 		return err
 	} else if err == nil {
 		file := res.(*migration).File
@@ -67,12 +67,12 @@ func Down(connectionName string, to int) error {
 		}
 		sql := strings.TrimSpace(string(b))
 		if sql != "" {
-			if _, err := xpg.DB(connectionName).Exec(context.Background(), sql); err != nil {
+			if _, err := xpg.DB(poolName).Exec(ctx, sql); err != nil {
 				return err
 			}
 			log.Printf("%s executed!\n", strconv.Itoa(fileNum)+"_down.sql")
 		}
-		if err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(fileNum)+"_up.sql").Delete(); err != nil {
+		if err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(fileNum)+"_up.sql").Delete(ctx); err != nil {
 			return err
 		}
 	}
@@ -81,18 +81,18 @@ func Down(connectionName string, to int) error {
 }
 
 // Up Выполнит SQL запросы из файлов миграции
-func Up(connectionName string, to int) error {
+func Up(ctx context.Context, poolName string, to int) error {
 	var reTest = regexp.MustCompile(`^[0-9]+_up\.sql$`)
-	var migrationPath = xpg.MigrationsPath(connectionName)
+	var migrationPath = xpg.MigrationsPath(poolName)
 	var migrations []int
 	var objMigration = &migration{}
-	objMigration.SetConnection(connectionName)
-	if err := Restore(objMigration); err != nil {
+	objMigration.SetPool(poolName)
+	if err := Restore(ctx, objMigration); err != nil {
 		return err
 	}
 
 	if to > -1 {
-		if ok, err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(to)+"_up.sql").Exists(); err != nil {
+		if ok, err := xpg.New(objMigration).Where("file", "=", strconv.Itoa(to)+"_up.sql").Exists(ctx); err != nil {
 			return err
 		} else if ok {
 			return nil
@@ -100,7 +100,7 @@ func Up(connectionName string, to int) error {
 	}
 
 	var from int
-	if res, err := xpg.New(objMigration).OrderBy("created_at", "DESC").First(); err != nil && err.Error() != "xpg: No records found" {
+	if res, err := xpg.New(objMigration).OrderBy("created_at", "DESC").First(ctx); err != nil && err.Error() != "xpg: No records found" {
 		return err
 	} else if err == nil {
 		file := res.(*migration).File
@@ -136,15 +136,15 @@ func Up(connectionName string, to int) error {
 		}
 		sql := strings.TrimSpace(string(b))
 		if sql != "" {
-			if _, err := xpg.DB(connectionName).Exec(context.Background(), sql); err != nil {
+			if _, err := xpg.DB(poolName).Exec(ctx, sql); err != nil {
 				return err
 			}
 			log.Printf("%s executed!\n", strconv.Itoa(fileNum)+"_up.sql")
 		}
 		row := &migration{}
-		row.SetConnection(connectionName)
+		row.SetPool(poolName)
 		row.File = strconv.Itoa(fileNum) + "_up.sql"
-		if err := row.Save(); err != nil {
+		if err := row.Save(ctx); err != nil {
 			return err
 		}
 	}
@@ -153,9 +153,9 @@ func Up(connectionName string, to int) error {
 }
 
 // Restore Сверит структуру с базой данных, создаст таблицу, если её нет и добавит недостающие колонки
-func Restore(tabler xpg.Tabler) error {
-	var valueOf = reflect.ValueOf(tabler)
-	var tableName = tabler.Table()
+func Restore(ctx context.Context, model xpg.Modeler) error {
+	var valueOf = reflect.ValueOf(model)
+	var tableName = model.Table()
 	var columns = []string{
 		`"id" BIGSERIAL NOT NULL`,
 	}
@@ -178,8 +178,8 @@ func Restore(tabler xpg.Tabler) error {
 		`"updated_at" TIMESTAMP DEFAULT NULL`,
 	}...)
 
-	conn := xpg.New(tabler)
-	tables, err := conn.Tables()
+	pool := xpg.New(model)
+	tables, err := pool.Tables(ctx)
 	if err != nil {
 		return err
 	}
@@ -192,11 +192,11 @@ func Restore(tabler xpg.Tabler) error {
 	}
 
 	if !exists {
-		_, err := xpg.DB(tabler.Connection()).Exec(context.Background(), `CREATE TABLE "`+tableName+`" (`+strings.Join(columns, ", ")+`)`)
+		_, err := xpg.DB(model.PoolName()).Exec(ctx, `CREATE TABLE "`+tableName+`" (`+strings.Join(columns, ", ")+`)`)
 		return err
 	}
 
-	existsColumns, err := conn.Columns()
+	existsColumns, err := pool.Columns(ctx)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func Restore(tabler xpg.Tabler) error {
 			}
 		}
 		if !exists {
-			if _, err := xpg.DB(tabler.Connection()).Exec(context.Background(), `ALTER TABLE "`+tableName+`" ADD COLUMN `+column); err != nil {
+			if _, err := xpg.DB(model.PoolName()).Exec(ctx, `ALTER TABLE "`+tableName+`" ADD COLUMN `+column); err != nil {
 				return err
 			}
 		}

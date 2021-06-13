@@ -19,7 +19,7 @@ func (nt *NullTime) Scan(value interface{}) error {
 	if t, ok := value.(time.Time); ok {
 		nt.Valid = true
 		if zone, offset := t.Zone(); localZone != zone {
-			t = t.Local().Add(time.Duration(offset - localOffset) * time.Second)
+			t = t.Local().Add(time.Duration(offset-localOffset) * time.Second)
 		}
 		nt.Time = t
 	}

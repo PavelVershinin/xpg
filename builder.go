@@ -7,249 +7,249 @@ import (
 )
 
 // Join Присоединит таблицу INNER JOIN
-func (c *Connection) Join(table, alias, condition string) *Connection {
-	c.joins = append(c.joins, join{
+func (p *Pool) Join(table, alias, condition string) *Pool {
+	p.joins = append(p.joins, join{
 		joinType:  "INNER",
 		table:     table,
 		alias:     alias,
 		condition: condition,
 	})
-	return c
+	return p
 }
 
 // LeftJoin Присоединит таблицу LEFT OUTER JOIN
-func (c *Connection) LeftJoin(table, alias, condition string) *Connection {
-	c.joins = append(c.joins, join{
+func (p *Pool) LeftJoin(table, alias, condition string) *Pool {
+	p.joins = append(p.joins, join{
 		joinType:  "LEFT",
 		table:     table,
 		alias:     alias,
 		condition: condition,
 	})
-	return c
+	return p
 }
 
 // RightJoin Присоединит таблицу RIGHT OUTER JOIN
-func (c *Connection) RightJoin(table, alias, condition string) *Connection {
-	c.joins = append(c.joins, join{
+func (p *Pool) RightJoin(table, alias, condition string) *Pool {
+	p.joins = append(p.joins, join{
 		joinType:  "RIGHT",
 		table:     table,
 		alias:     alias,
 		condition: condition,
 	})
-	return c
+	return p
 }
 
 // FullJoin Присоединит таблицу FULL OUTER JOIN
-func (c *Connection) FullJoin(table, alias, condition string) *Connection {
-	c.joins = append(c.joins, join{
+func (p *Pool) FullJoin(table, alias, condition string) *Pool {
+	p.joins = append(p.joins, join{
 		joinType:  "FULL",
 		table:     table,
 		alias:     alias,
 		condition: condition,
 	})
-	return c
+	return p
 }
 
 // Union Объединение запросов
-func (c *Connection) Union(all bool, queries ...*Connection) *Connection {
+func (p *Pool) Union(all bool, queries ...*Pool) *Pool {
 	for _, query := range queries {
-		c.unions = append(c.unions, union{
+		p.unions = append(p.unions, union{
 			all:  all,
-			conn: query,
+			pool: query,
 		})
 	}
-	return c
+	return p
 }
 
 // Limit Выбрать limit записей
-func (c *Connection) Limit(limit int) *Connection {
-	c.limit = limit
-	return c
+func (p *Pool) Limit(limit int) *Pool {
+	p.limit = limit
+	return p
 }
 
 // Offset Пропустить offset записей
-func (c *Connection) Offset(offset int) *Connection {
-	c.offset = offset
-	return c
+func (p *Pool) Offset(offset int) *Pool {
+	p.offset = offset
+	return p
 }
 
 // Where Добавит условие WHERE через AND
-func (c *Connection) Where(column, operator string, value interface{}) *Connection {
-	c.where(" AND ", column, operator, value)
-	return c
+func (p *Pool) Where(column, operator string, value interface{}) *Pool {
+	p.where(" AND ", column, operator, value)
+	return p
 }
 
 // OrWhere Добавит условие WHERE через OR
-func (c *Connection) OrWhere(column, operator string, value interface{}) *Connection {
-	c.where(" OR ", column, operator, value)
-	return c
+func (p *Pool) OrWhere(column, operator string, value interface{}) *Pool {
+	p.where(" OR ", column, operator, value)
+	return p
 }
 
 // WhereBetween Добавит условие WHERE BETWEEN через AND
-func (c *Connection) WhereBetween(column string, from, to interface{}) *Connection {
-	c.GroupWhere(func(c *Connection) {
-		c.Where(column, ">=", from)
-		c.Where(column, "<=", to)
+func (p *Pool) WhereBetween(column string, from, to interface{}) *Pool {
+	p.GroupWhere(func(p *Pool) {
+		p.Where(column, ">=", from)
+		p.Where(column, "<=", to)
 	})
-	return c
+	return p
 }
 
 // OrWhereBetween Добавит условие WHERE BETWEEN через OR
-func (c *Connection) OrWhereBetween(column string, from, to interface{}) *Connection {
-	c.OrGroupWhere(func(c *Connection) {
-		c.Where(column, ">=", from)
-		c.Where(column, "<=", to)
+func (p *Pool) OrWhereBetween(column string, from, to interface{}) *Pool {
+	p.OrGroupWhere(func(p *Pool) {
+		p.Where(column, ">=", from)
+		p.Where(column, "<=", to)
 	})
-	return c
+	return p
 }
 
 // GroupWhere Добавит групповое условие WHERE через AND
-func (c *Connection) GroupWhere(f func(c *Connection)) *Connection {
-	var group = c.openedGroupWhere()
+func (p *Pool) GroupWhere(f func(p *Pool)) *Pool {
+	var group = p.openedGroupWhere()
 	if len(group.wheres) > 0 {
 		group.closed = true
-		group = c.openedGroupWhere()
+		group = p.openedGroupWhere()
 	}
-	f(c)
+	f(p)
 	group.closed = true
-	return c
+	return p
 }
 
 // OrGroupWhere Добавит групповое условие WHERE через OR
-func (c *Connection) OrGroupWhere(f func(c *Connection)) *Connection {
-	var group = c.openedGroupWhere()
+func (p *Pool) OrGroupWhere(f func(p *Pool)) *Pool {
+	var group = p.openedGroupWhere()
 	if len(group.wheres) > 0 {
 		group.closed = true
-		group = c.openedGroupWhere()
+		group = p.openedGroupWhere()
 	}
-	f(c)
+	f(p)
 	group.logic = " OR "
 	group.closed = true
-	return c
+	return p
 }
 
 // WhereRaw Произвольное условие WHERE через AND
-func (c *Connection) WhereRaw(sql string, bindings ...interface{}) *Connection {
-	c.whereRaw(" AND ", whereRaw{
+func (p *Pool) WhereRaw(sql string, bindings ...interface{}) *Pool {
+	p.whereRaw(" AND ", whereRaw{
 		sql:      sql,
 		bindings: bindings,
 	})
-	return c
+	return p
 }
 
 // OrWhereRaw Произвольное условие WHERE через OR
-func (c *Connection) OrWhereRaw(sql string, bindings ...interface{}) *Connection {
-	c.whereRaw(" OR ", whereRaw{
+func (p *Pool) OrWhereRaw(sql string, bindings ...interface{}) *Pool {
+	p.whereRaw(" OR ", whereRaw{
 		sql:      sql,
 		bindings: bindings,
 	})
-	return c
+	return p
 }
 
 // WhereIn Добавит условие WHERE IN через AND
-func (c *Connection) WhereIn(column string, values *WhereInValues) *Connection {
-	c.where(" AND ", column, "IN", values)
-	return c
+func (p *Pool) WhereIn(column string, values *WhereInValues) *Pool {
+	p.where(" AND ", column, "IN", values)
+	return p
 }
 
 // OrWhereIn Добавит условие WHERE IN через OR
-func (c *Connection) OrWhereIn(column string, values *WhereInValues) *Connection {
-	c.where(" OR ", column, "IN", values)
-	return c
+func (p *Pool) OrWhereIn(column string, values *WhereInValues) *Pool {
+	p.where(" OR ", column, "IN", values)
+	return p
 }
 
 // WhereNotIn Добавит условие WHERE NOT IN через AND
-func (c *Connection) WhereNotIn(column string, values *WhereInValues) *Connection {
-	c.where(" AND ", column, "NOT IN", values)
-	return c
+func (p *Pool) WhereNotIn(column string, values *WhereInValues) *Pool {
+	p.where(" AND ", column, "NOT IN", values)
+	return p
 }
 
 // OrWhereNotIn Добавит условие WHERE NOT IN через OR
-func (c *Connection) OrWhereNotIn(column string, values *WhereInValues) *Connection {
-	c.where(" OR ", column, "NOT IN", values)
-	return c
+func (p *Pool) OrWhereNotIn(column string, values *WhereInValues) *Pool {
+	p.where(" OR ", column, "NOT IN", values)
+	return p
 }
 
 // GroupBy Группировка по колонкам
-func (c *Connection) GroupBy(column string, columns ...string) *Connection {
-	c.groupBy = append(c.groupBy, append([]string{column}, columns...)...)
-	return c
+func (p *Pool) GroupBy(column string, columns ...string) *Pool {
+	p.groupBy = append(p.groupBy, append([]string{column}, columns...)...)
+	return p
 }
 
 // Distinct Удаление дублей
-func (c *Connection) Distinct(on ...string) *Connection {
-	c.distinct.active = true
-	c.distinct.on = on
-	return c
+func (p *Pool) Distinct(on ...string) *Pool {
+	p.distinct.active = true
+	p.distinct.on = on
+	return p
 }
 
 // OrderBy Отсортировать по
-func (c *Connection) OrderBy(column, order string) *Connection {
+func (p *Pool) OrderBy(column, order string) *Pool {
 	var sql bytes.Buffer
 	sql.WriteString(column)
 	sql.WriteString(" ")
 	sql.WriteString(order)
-	c.orderBy = append(c.orderBy, sql.String())
-	return c
+	p.orderBy = append(p.orderBy, sql.String())
+	return p
 }
 
 // OrderByRaw Произвольная сортировка
-func (c *Connection) OrderByRaw(orderRaw string) *Connection {
-	c.orderBy = append(c.orderBy, orderRaw)
-	return c
+func (p *Pool) OrderByRaw(orderRaw string) *Pool {
+	p.orderBy = append(p.orderBy, orderRaw)
+	return p
 }
 
 // OrderByRand Отсортировать в случайном порядке
-func (c *Connection) OrderByRand() *Connection {
-	c.orderBy = append(c.orderBy, "RANDOM()")
-	return c
+func (p *Pool) OrderByRand() *Pool {
+	p.orderBy = append(p.orderBy, "RANDOM()")
+	return p
 }
 
 // BuildSelect Вернёт строку запроса и аргументы
-func (c *Connection) BuildSelect() (string, []interface{}) {
+func (p *Pool) BuildSelect() (string, []interface{}) {
 	var query bytes.Buffer
-	from, args := c.buildFrom(nil)
-	where, args := c.buildWhere(args)
+	from, args := p.buildFrom(nil)
+	where, args := p.buildWhere(args)
 
-	query.WriteString(c.buildSelect())
+	query.WriteString(p.buildSelect())
 	query.WriteString(from)
-	query.WriteString(c.buildJoin())
+	query.WriteString(p.buildJoin())
 	query.WriteString(where)
-	query.WriteString(c.buildGroupBy())
-	query.WriteString(c.buildOrderBy())
-	query.WriteString(c.buildOffset())
-	query.WriteString(c.buildLimit())
+	query.WriteString(p.buildGroupBy())
+	query.WriteString(p.buildOrderBy())
+	query.WriteString(p.buildOffset())
+	query.WriteString(p.buildLimit())
 
 	return query.String(), args
 }
 
 // BuildSum Вернёт строку запроса и аргументы
-func (c *Connection) BuildSum(column string) (string, []interface{}) {
+func (p *Pool) BuildSum(column string) (string, []interface{}) {
 	var query bytes.Buffer
-	from, args := c.buildFrom(nil)
-	where, args := c.buildWhere(args)
+	from, args := p.buildFrom(nil)
+	where, args := p.buildWhere(args)
 
 	query.WriteString(`SELECT COALESCE(SUM("`)
 	query.WriteString(column)
 	query.WriteString(`"), 0)`)
 	query.WriteString(from)
-	query.WriteString(c.buildJoin())
+	query.WriteString(p.buildJoin())
 	query.WriteString(where)
 
 	return query.String(), args
 }
 
 // BuildCount Вернёт строку запроса и аргументы
-func (c *Connection) BuildCount() (string, []interface{}) {
+func (p *Pool) BuildCount() (string, []interface{}) {
 	var query bytes.Buffer
-	from, args := c.buildFrom(nil)
-	where, args := c.buildWhere(args)
+	from, args := p.buildFrom(nil)
+	where, args := p.buildWhere(args)
 
-	if c.distinct.active {
-		if len(c.distinct.on) == 1 {
-			query.WriteString(`SELECT COUNT(DISTINCT ` + c.distinct.on[0] + `) AS "count"`)
-		} else if len(c.distinct.on) > 1 {
-			query.WriteString(`SELECT COUNT(DISTINCT CONCAT(` + strings.Join(c.distinct.on, ",") + `)) AS "count"`)
+	if p.distinct.active {
+		if len(p.distinct.on) == 1 {
+			query.WriteString(`SELECT COUNT(DISTINCT ` + p.distinct.on[0] + `) AS "count"`)
+		} else if len(p.distinct.on) > 1 {
+			query.WriteString(`SELECT COUNT(DISTINCT CONCAT(` + strings.Join(p.distinct.on, ",") + `)) AS "count"`)
 		} else {
 			query.WriteString(`SELECT COUNT(DISTINCT *) AS "count"`)
 		}
@@ -257,16 +257,16 @@ func (c *Connection) BuildCount() (string, []interface{}) {
 		query.WriteString(`SELECT COUNT(*) AS "count"`)
 	}
 	query.WriteString(from)
-	query.WriteString(c.buildJoin())
+	query.WriteString(p.buildJoin())
 	query.WriteString(where)
 
 	return query.String(), args
 }
 
-func (c *Connection) buildWhere(args []interface{}) (string, []interface{}) {
+func (p *Pool) buildWhere(args []interface{}) (string, []interface{}) {
 	var query bytes.Buffer
 	var groupNum uint
-	for _, group := range c.wheres {
+	for _, group := range p.wheres {
 		if len(group.wheres) > 0 {
 			if groupNum > 0 {
 				query.WriteString(group.logic)
@@ -323,28 +323,28 @@ func (c *Connection) buildWhere(args []interface{}) (string, []interface{}) {
 	return "", args
 }
 
-func (c *Connection) buildSelect() string {
+func (p *Pool) buildSelect() string {
 	var query bytes.Buffer
 	query.WriteString("SELECT ")
-	if c.distinct.active {
+	if p.distinct.active {
 		query.WriteString("DISTINCT ")
-		if len(c.distinct.on) > 0 {
+		if len(p.distinct.on) > 0 {
 			query.WriteString(`ON(`)
-			query.WriteString(strings.Join(c.distinct.on, `,`))
+			query.WriteString(strings.Join(p.distinct.on, `,`))
 			query.WriteString(`) `)
 		}
 	}
-	query.WriteString(c.tabler.Columns())
+	query.WriteString(p.model.Columns())
 	return query.String()
 }
 
-func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
+func (p *Pool) buildFrom(args []interface{}) (string, []interface{}) {
 	var query bytes.Buffer
 	query.WriteString(` FROM `)
-	if len(c.unions) > 0 {
+	if len(p.unions) > 0 {
 		query.WriteString("(\n")
-		for i, union := range c.unions {
-			sql, subArgs := union.conn.BuildSelect()
+		for i, union := range p.unions {
+			sql, subArgs := union.pool.BuildSelect()
 			for j, arg := range subArgs {
 				args = append(args, arg)
 				sql = strings.Replace(sql, "$"+strconv.Itoa(j+1), "$"+strconv.Itoa(len(args)), -1)
@@ -363,14 +363,14 @@ func (c *Connection) buildFrom(args []interface{}) (string, []interface{}) {
 	} else {
 		query.WriteString(`"`)
 	}
-	query.WriteString(c.tabler.Table())
+	query.WriteString(p.model.Table())
 	query.WriteString(`"`)
 	return query.String(), args
 }
 
-func (c *Connection) buildJoin() string {
+func (p *Pool) buildJoin() string {
 	var query bytes.Buffer
-	for _, join := range c.joins {
+	for _, join := range p.joins {
 		query.WriteString(" ")
 		query.WriteString(join.joinType)
 		query.WriteString(" JOIN ")
@@ -388,52 +388,52 @@ func (c *Connection) buildJoin() string {
 	return query.String()
 }
 
-func (c *Connection) buildOffset() string {
+func (p *Pool) buildOffset() string {
 	var query bytes.Buffer
-	if c.offset > 0 {
+	if p.offset > 0 {
 		query.WriteString(" OFFSET ")
-		query.WriteString(strconv.Itoa(c.offset))
+		query.WriteString(strconv.Itoa(p.offset))
 	}
 	return query.String()
 }
 
-func (c *Connection) buildLimit() string {
+func (p *Pool) buildLimit() string {
 	var query bytes.Buffer
-	if c.limit > 0 {
+	if p.limit > 0 {
 		query.WriteString(" LIMIT ")
-		query.WriteString(strconv.Itoa(c.limit))
+		query.WriteString(strconv.Itoa(p.limit))
 	}
 	return query.String()
 }
 
-func (c *Connection) buildOrderBy() string {
+func (p *Pool) buildOrderBy() string {
 	var query bytes.Buffer
-	if len(c.orderBy) > 0 {
+	if len(p.orderBy) > 0 {
 		query.WriteString(" ORDER BY ")
-		query.WriteString(strings.Join(c.orderBy, ", "))
+		query.WriteString(strings.Join(p.orderBy, ", "))
 	}
 	return query.String()
 }
 
-func (c *Connection) buildGroupBy() string {
+func (p *Pool) buildGroupBy() string {
 	var query bytes.Buffer
-	if len(c.groupBy) > 0 {
+	if len(p.groupBy) > 0 {
 		query.WriteString(" GROUP BY ")
-		query.WriteString(strings.Join(c.groupBy, ", "))
+		query.WriteString(strings.Join(p.groupBy, ", "))
 	}
 	return query.String()
 }
 
-func (c *Connection) whereRaw(logic string, raw whereRaw) {
-	var group = c.openedGroupWhere()
+func (p *Pool) whereRaw(logic string, raw whereRaw) {
+	var group = p.openedGroupWhere()
 	group.wheres = append(group.wheres, where{
 		logic: logic,
 		raw:   raw,
 	})
 }
 
-func (c *Connection) where(logic, column, operator string, value interface{}) {
-	var group = c.openedGroupWhere()
+func (p *Pool) where(logic, column, operator string, value interface{}) {
+	var group = p.openedGroupWhere()
 	group.wheres = append(group.wheres, where{
 		logic:    logic,
 		column:   column,
@@ -442,13 +442,13 @@ func (c *Connection) where(logic, column, operator string, value interface{}) {
 	})
 }
 
-func (c *Connection) openedGroupWhere() *groupWhere {
-	var index = len(c.wheres) - 1
-	if index == -1 || c.wheres[index].closed {
-		c.wheres = append(c.wheres, groupWhere{
+func (p *Pool) openedGroupWhere() *groupWhere {
+	var index = len(p.wheres) - 1
+	if index == -1 || p.wheres[index].closed {
+		p.wheres = append(p.wheres, groupWhere{
 			logic: " AND ",
 		})
 		index++
 	}
-	return &c.wheres[index]
+	return &p.wheres[index]
 }

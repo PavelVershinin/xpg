@@ -1,6 +1,7 @@
 package xpg
 
 import (
+	"context"
 	"database/sql/driver"
 	"errors"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-// Model базовая модель соответствующая минимально требуемой структуре Tabler
+// Model базовая модель соответствующая минимально требуемой структуре Modeler
 type Model struct {
 	ID int64 `json:"id"`
 	//...
@@ -27,13 +28,13 @@ func (Model) Columns() string {
 	return "*"
 }
 
-// Connection Возвращает название подключения к БД
-func (Model) Connection() (name string) {
+// PoolName Возвращает название подключения к БД
+func (Model) PoolName() (name string) {
 	return ""
 }
 
 // ScanRow Реализация чтения строки из результата запроса
-func (Model) ScanRow(rows pgx.Rows) (Tabler, error) {
+func (Model) ScanRow(rows pgx.Rows) (Modeler, error) {
 	row := &Model{}
 	err := rows.Scan(
 		&row.ID,
@@ -46,18 +47,18 @@ func (Model) ScanRow(rows pgx.Rows) (Tabler, error) {
 }
 
 // Save Сохранение новой/измененной структуры в БД
-func (m *Model) Save() (err error) {
+func (m *Model) Save(ctx context.Context) (err error) {
 	data := map[string]interface{}{
 		"id": m.ID,
 		//...
 	}
-	m.ID, err = New(m).Write(data)
+	m.ID, err = New(m).Write(ctx, data)
 	return err
 }
 
 // Delete Удаление записи из БД
-func (m *Model) Delete() error {
-	return New(m).Where("id", "=", m.ID).Delete()
+func (m *Model) Delete(ctx context.Context) error {
+	return New(m).Where("id", "=", m.ID).Delete(ctx)
 }
 
 // Scan Реализация интерфейса sql.Scanner
@@ -73,17 +74,4 @@ func (m *Model) Scan(src interface{}) error {
 // Value Реализация интерфейса driver.Valuer
 func (m Model) Value() (driver.Value, error) {
 	return m.ID, nil
-}
-
-// DbTake Получение записи из БД
-func (m *Model) DbTake(force ...bool) error {
-	if m.ID > 0 && (!m.Valid || (len(force) > 0 && force[0])) {
-		t, err := New(m).Where("id", "=", m.ID).First()
-		if err != nil {
-			return err
-		}
-		*m = *t.(*Model)
-		m.Valid = true
-	}
-	return nil
 }

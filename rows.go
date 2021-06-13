@@ -9,17 +9,17 @@ import (
 // Rows Интерфейс для хранения результата запроса к БД
 type Rows struct {
 	pgx.Rows
-	conn *Connection
+	pool *Pool
 }
 
 // Get Получение очередной строки
-func (r *Rows) Get() (Tabler, error) {
-	return r.conn.tabler.ScanRow(r.Rows)
+func (r *Rows) Get() (Modeler, error) {
+	return r.pool.model.ScanRow(r.Rows)
 }
 
 // Fetch Метод для перебора for row := range res.Fetch() {
-func (r *Rows) Fetch() <-chan Tabler {
-	var channel = make(chan Tabler)
+func (r *Rows) Fetch() <-chan Modeler {
+	var channel = make(chan Modeler)
 	go func() {
 		for r.Next() {
 			if row, err := r.Get(); err != nil {

@@ -6,105 +6,87 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 var (
-	mu          sync.RWMutex
-	connections map[string]*Connection
+	mu    sync.RWMutex
+	pools = make(map[string]*Pool)
 )
 
-func init() {
-	connections = make(map[string]*Connection)
-}
-
-// NewConnection Создаст новое подключение к БД
-func NewConnection(ctx context.Context, connectionName string, connConfig *pgx.ConnConfig, migrationsPath string) error {
-	conn, err := pgx.ConnectConfig(ctx, connConfig)
+// NewConnectionPool Создаст новое подключение к БД
+func NewConnectionPool(ctx context.Context, poolName string, connConfig *pgxpool.Config, migrationsPath string) error {
+	pool, err := pgxpool.ConnectConfig(ctx, connConfig)
 	if err != nil {
-		return fmt.Errorf("xpg: Unable to connection to database: %v\n", err)
+		return fmt.Errorf("xpg: Unable to connection to database: %w\n", err)
 	}
-	return AddConnection(ctx, connectionName, conn, migrationsPath)
+	return AddConnectionsPool(poolName, pool, migrationsPath)
 }
 
-// AddConnection Добавит существующее подключение в коллекцию
-func AddConnection(ctx context.Context, connectionName string, conn *pgx.Conn, migrationsPath string) error {
+// AddConnectionsPool Добавит существующее подключение в коллекцию
+func AddConnectionsPool(poolName string, pool *pgxpool.Pool, migrationsPath string) error {
 	mu.Lock()
 	defer mu.Unlock()
-	if c, ok := connections[connectionName]; ok && c != nil {
-		if err := c.Close(); err != nil {
-			return fmt.Errorf("xpg: Unable to close database connection: %v\n", err)
-		}
+	if c, ok := pools[poolName]; ok && c != nil {
+		c.Close()
 	}
-	connections[connectionName] = newConn(ctx, conn, migrationsPath)
+	pools[poolName] = addPool(pool, migrationsPath)
 	return nil
 }
 
 // New Вернёт подключение для работы с моделью
-func New(tabler Tabler) *Connection {
-	conn, err := connection(tabler.Connection())
+func New(model Modeler) *Pool {
+	p, err := pool(model.PoolName())
 	if err != nil {
 		panic(err)
 	}
-	return conn.new(tabler)
-}
-
-// Conn Вернёт соединение
-func Conn(connectionName string) *Connection {
-	conn, err := connection(connectionName)
-	if err != nil {
-		panic(err)
-	}
-	return conn
+	return p.new(model)
 }
 
 // DB Вернёт нативное подключение к БД
-func DB(connectionName string) *pgx.Conn {
-	conn, err := connection(connectionName)
+func DB(poolName string) *pgxpool.Pool {
+	p, err := pool(poolName)
 	if err != nil {
 		panic(err)
 	}
-	return conn.conn
+	return p.pool
 }
 
-// MigrationsPath Вернёт путь к директории с миграциями для
-func MigrationsPath(connectionName string) string {
-	conn, err := connection(connectionName)
+// MigrationsPath Вернёт путь к директории с миграциями
+func MigrationsPath(poolName string) string {
+	p, err := pool(poolName)
 	if err != nil {
 		panic(err)
 	}
-	return conn.migrationsPath
+	return p.migrationsPath
 }
 
 // SetTimezone Задаст часовой пояс
-func SetTimezone(connectionName string, location *time.Location) error {
-	conn, err := connection(connectionName)
+func SetTimezone(ctx context.Context, poolName string, location *time.Location) error {
+	p, err := pool(poolName)
 	if err != nil {
 		return err
 	}
-	_, err = conn.conn.Exec(conn.ctx, `SET TIMEZONE='`+location.String()+`'`)
+	_, err = p.pool.Exec(ctx, `SET TIMEZONE='`+location.String()+`'`)
 	return err
 }
 
 // Close Закроет все подключения к БД
-func Close() error {
+func Close() {
 	mu.Lock()
 	defer mu.Unlock()
-	for _, c := range connections {
-		if err := c.Close(); err != nil {
-			return fmt.Errorf("xpg: Unable to close database connection: %v\n", err)
-		}
+	for _, c := range pools {
+		c.Close()
 	}
-	connections = make(map[string]*Connection)
-	return nil
+	pools = make(map[string]*Pool)
 }
 
-func connection(connectionName string) (c *Connection, err error) {
+func pool(connectionName string) (*Pool, error) {
 	mu.RLock()
-	c, ok := connections[connectionName]
+	defer mu.RUnlock()
+	p, ok := pools[connectionName]
 	if !ok {
-		err = fmt.Errorf("xpg: Connection `%s` not found", connectionName)
+		return nil, fmt.Errorf("xpg: Pool of connections `%s` not found", connectionName)
 	}
-	mu.RUnlock()
-	return
+	return p, nil
 }

@@ -2,6 +2,7 @@ package xpg
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -9,7 +10,7 @@ import (
 )
 
 // Write Запись в БД
-func (c *Connection) Write(data map[string]interface{}) (id int64, err error) {
+func (p *Pool) Write(ctx context.Context, data map[string]interface{}) (int64, error) {
 	var updateID int64
 	if id, ok := data["id"]; ok {
 		switch aId := id.(type) {
@@ -31,17 +32,17 @@ func (c *Connection) Write(data map[string]interface{}) (id int64, err error) {
 		delete(data, "id")
 	}
 	if updateID > 0 {
-		c.Where("id", "=", updateID)
-		return updateID, c.Update(data)
+		p.Where("id", "=", updateID)
+		return updateID, p.Update(ctx, data)
 	}
-	if len(c.wheres) > 0 {
-		return -1, c.Update(data)
+	if len(p.wheres) > 0 {
+		return -1, p.Update(ctx, data)
 	}
-	return c.Insert(data)
+	return p.Insert(ctx, data)
 }
 
 // Insert Вставка записи в БД
-func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
+func (p *Pool) Insert(ctx context.Context, data map[string]interface{}) (id int64, err error) {
 	var columns = make([]string, 0, len(data)+1)
 	var values = make([]string, 0, len(data)+1)
 	var args = make([]interface{}, 0, len(data)+1)
@@ -63,7 +64,7 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 	var sql bytes.Buffer
 	sql.WriteString("INSERT INTO ")
 	sql.WriteString(`"`)
-	sql.WriteString(c.tabler.Table())
+	sql.WriteString(p.model.Table())
 	sql.WriteString(`"`)
 	sql.WriteString(" (")
 	sql.WriteString(`"`)
@@ -74,7 +75,7 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 	sql.WriteString(")")
 
 	sql.WriteString(` RETURNING "id"`)
-	res, err := c.Query(sql.String(), args...)
+	res, err := p.Query(ctx, sql.String(), args...)
 	if err != nil {
 		return 0, err
 	}
@@ -87,7 +88,7 @@ func (c *Connection) Insert(data map[string]interface{}) (id int64, err error) {
 }
 
 // Update Изменение записи в БД
-func (c *Connection) Update(data map[string]interface{}) (err error) {
+func (p *Pool) Update(ctx context.Context, data map[string]interface{}) error {
 	var columns, sql bytes.Buffer
 	var args = make([]interface{}, 0, len(data)+1)
 
@@ -108,57 +109,58 @@ func (c *Connection) Update(data map[string]interface{}) (err error) {
 	columns.WriteString("=$")
 	columns.WriteString(strconv.Itoa(len(args)))
 
-	where, args := c.buildWhere(args)
+	where, args := p.buildWhere(args)
 
 	sql.WriteString("UPDATE ")
 	sql.WriteString(`"`)
-	sql.WriteString(c.tabler.Table())
+	sql.WriteString(p.model.Table())
 	sql.WriteString(`"`)
 	sql.WriteString(" SET ")
 	sql.Write(columns.Bytes())
 	sql.WriteString(where)
 
-	_, err = c.conn.Exec(c.ctx, sql.String(), args...)
+	_, err := p.pool.Exec(ctx, sql.String(), args...)
 	return err
 }
 
 // Delete Удаление записи из БД
-func (c *Connection) Delete() (err error) {
-	var where, args = c.buildWhere(nil)
+func (p *Pool) Delete(ctx context.Context) error {
+	var where, args = p.buildWhere(nil)
 	var query bytes.Buffer
 
 	query.WriteString("DELETE FROM ")
 	query.WriteString(`"`)
-	query.WriteString(c.tabler.Table())
+	query.WriteString(p.model.Table())
 	query.WriteString(`"`)
 	query.WriteString(where)
 
-	_, err = c.conn.Exec(c.ctx, query.String(), args...)
+	_, err := p.pool.Exec(ctx, query.String(), args...)
 	return err
 }
 
 // Select Получить записи
-func (c *Connection) Select() (rows *Rows, err error) {
-	query, args := c.BuildSelect()
-	return c.Query(query, args...)
+func (p *Pool) Select(ctx context.Context) (*Rows, error) {
+	query, args := p.BuildSelect()
+	return p.Query(ctx, query, args...)
 }
 
 // Query запрос к БД
-func (c *Connection) Query(query string, args ...interface{}) (rows *Rows, err error) {
-	r, err := c.conn.Query(c.ctx, query, args...)
+func (p *Pool) Query(ctx context.Context, query string, args ...interface{}) (*Rows, error) {
+	var rows *Rows
+	r, err := p.pool.Query(ctx, query, args...)
 	if err == nil {
 		rows = &Rows{}
-		rows.conn = c
+		rows.pool = p
 		rows.Rows = r
 	}
-	return
+	return rows, err
 }
 
 // First Получить первую запись
-func (c *Connection) First() (Tabler, error) {
-	c.limit = 1
-	query, args := c.BuildSelect()
-	rows, err := c.Query(query, args...)
+func (p *Pool) First(ctx context.Context) (Modeler, error) {
+	p.limit = 1
+	query, args := p.BuildSelect()
+	rows, err := p.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -171,10 +173,10 @@ func (c *Connection) First() (Tabler, error) {
 }
 
 // Exists Проверка наличия записи в базе
-func (c *Connection) Exists() (bool, error) {
-	c.limit = 1
-	query, args := c.BuildSelect()
-	rows, err := c.Query("SELECT EXISTS("+query+")", args...)
+func (p *Pool) Exists(ctx context.Context) (bool, error) {
+	p.limit = 1
+	query, args := p.BuildSelect()
+	rows, err := p.Query(ctx, "SELECT EXISTS("+query+")", args...)
 	if err != nil {
 		return false, err
 	}
@@ -188,10 +190,10 @@ func (c *Connection) Exists() (bool, error) {
 }
 
 // Count Получить количество записей
-func (c *Connection) Count() (int64, error) {
+func (p *Pool) Count(ctx context.Context) (int64, error) {
 	var count int64
-	query, args := c.BuildCount()
-	rows, err := c.Query(query, args...)
+	query, args := p.BuildCount()
+	rows, err := p.Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -205,10 +207,10 @@ func (c *Connection) Count() (int64, error) {
 }
 
 // Sum Получить сумму записей
-func (c *Connection) Sum(column string) (float64, error) {
+func (p *Pool) Sum(ctx context.Context, column string) (float64, error) {
 	var sum float64
-	query, args := c.BuildSum(column)
-	rows, err := c.Query(query, args...)
+	query, args := p.BuildSum(column)
+	rows, err := p.Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}

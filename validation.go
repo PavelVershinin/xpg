@@ -1,6 +1,8 @@
 package xpg
 
 import (
+	"context"
+
 	"github.com/PavelVershinin/xpg/xpgtypes"
 
 	"reflect"
@@ -11,11 +13,11 @@ import (
 )
 
 // Validation Валидация данных перед записью
-func (c *Connection) Validation(data map[string]interface{}) (validData map[string]interface{}, err error) {
+func (p *Pool) Validation(ctx context.Context, data map[string]interface{}) (validData map[string]interface{}, err error) {
 	validData = make(map[string]interface{})
 	var columns []Column
 
-	if columns, err = c.Columns(); err != nil {
+	if columns, err = p.Columns(ctx); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +89,7 @@ func (c *Connection) Validation(data map[string]interface{}) (validData map[stri
 					"time":
 					validValuesTime = append(validValuesTime, toTime(value))
 				default:
-					var enums, _ = c.Enums()
+					var enums, _ = p.Enums(ctx)
 					for name, enumValues := range enums {
 						if strings.ToLower(name) == typeName {
 							str := toString(value, 0)

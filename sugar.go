@@ -1,5 +1,7 @@
 package xpg
 
+import "context"
+
 // Column Свойства колонки таблицы
 type Column struct {
 	Name    string
@@ -10,10 +12,10 @@ type Column struct {
 }
 
 // Enums Вернёт доступные перечисления
-func (c *Connection) Enums() (map[string][]string, error) {
+func (p *Pool) Enums(ctx context.Context) (map[string][]string, error) {
 	var enumValues = make(map[string][]string)
 
-	rows, err := c.Query(`
+	rows, err := p.Query(ctx, `
 		SELECT
 			t.typname,  
 			e.enumlabel
@@ -41,8 +43,8 @@ func (c *Connection) Enums() (map[string][]string, error) {
 }
 
 // EnumValues Вернёт доступные значения для типа ENUM
-func (c *Connection) EnumValues(name string) ([]string, error) {
-	var enums, err = c.Enums()
+func (p *Pool) EnumValues(ctx context.Context, name string) ([]string, error) {
+	var enums, err = p.Enums(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +52,9 @@ func (c *Connection) EnumValues(name string) ([]string, error) {
 }
 
 // Databases Список баз данных
-func (c *Connection) Databases() ([]string, error) {
+func (p *Pool) Databases(ctx context.Context) ([]string, error) {
 	var list []string
-	rows, err := c.Query("SELECT datname FROM pg_database WHERE datistemplate = false")
+	rows, err := p.Query(ctx, "SELECT datname FROM pg_database WHERE datistemplate = false")
 	if err != nil {
 		return []string{}, err
 	}
@@ -68,10 +70,10 @@ func (c *Connection) Databases() ([]string, error) {
 }
 
 // Columns Вернёт список колонок текущей таблицы
-func (c *Connection) Columns() ([]Column, error) {
+func (p *Pool) Columns(ctx context.Context) ([]Column, error) {
 	var columns []Column
 
-	rows, err := c.Query(`
+	rows, err := p.Query(ctx, `
                 SELECT
                     a.attname,
                     pg_catalog.format_type(a.atttypid, a.atttypmod),
@@ -83,19 +85,19 @@ func (c *Connection) Columns() ([]Column, error) {
                 WHERE
                     a.attrelid = (
                         SELECT
-                            c.oid
+                            p.oid
                         FROM
                             pg_catalog.pg_class c
                         LEFT JOIN
-                            pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                            pg_catalog.pg_namespace n ON n.oid = p.relnamespace
                         WHERE
-                            pg_catalog.pg_table_is_visible(c.oid) AND
-                            c.relname = $1
+                            pg_catalog.pg_table_is_visible(p.oid) AND
+                            p.relname = $1
                     ) AND
                     a.attnum > 0 AND
                     NOT a.attisdropped
                 ORDER BY a.attnum
-    `, c.tabler.Table())
+    `, p.model.Table())
 	if err != nil {
 		return []Column{}, err
 	}
@@ -111,10 +113,10 @@ func (c *Connection) Columns() ([]Column, error) {
 }
 
 // Tables Вернёт список таблиц в базе данных
-func (c *Connection) Tables() ([]string, error) {
+func (p *Pool) Tables(ctx context.Context) ([]string, error) {
 	var tables []string
 
-	rows, err := c.Query(`SELECT "tablename" FROM pg_catalog.pg_tables WHERE "schemaname"='public'`)
+	rows, err := p.Query(ctx, `SELECT "tablename" FROM pg_catalog.pg_tables WHERE "schemaname"='public'`)
 	if err != nil {
 		return []string{}, err
 	}
