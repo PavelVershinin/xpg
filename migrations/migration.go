@@ -21,10 +21,10 @@ func (migration) Table() string {
 // Columns Список полей, которые необходимо получать запросом SELECT
 func (migration) Columns() string {
 	return `
-		"id",
-		"file",
-		"created_at",
-		"updated_at"
+		"xpg_migrations"."id",
+		"xpg_migrations"."file",
+		"xpg_migrations"."created_at",
+		"xpg_migrations"."updated_at"
 	`
 }
 

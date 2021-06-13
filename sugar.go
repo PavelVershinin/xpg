@@ -74,29 +74,18 @@ func (p *Pool) Columns(ctx context.Context) ([]Column, error) {
 	var columns []Column
 
 	rows, err := p.Query(ctx, `
-                SELECT
-                    a.attname,
-                    pg_catalog.format_type(a.atttypid, a.atttypmod),
-                    a.attnotnull,
-                    a.atthasdef,
-                    a.attnum
-                FROM
-                    pg_catalog.pg_attribute a
-                WHERE
-                    a.attrelid = (
-                        SELECT
-                            p.oid
-                        FROM
-                            pg_catalog.pg_class c
-                        LEFT JOIN
-                            pg_catalog.pg_namespace n ON n.oid = p.relnamespace
-                        WHERE
-                            pg_catalog.pg_table_is_visible(p.oid) AND
-                            p.relname = $1
-                    ) AND
-                    a.attnum > 0 AND
-                    NOT a.attisdropped
-                ORDER BY a.attnum
+		select 
+			column_name,
+			data_type,
+			is_nullable='NO',
+			column_default IS NOT NULL, 
+			ordinal_position
+		from 
+			information_schema.columns 
+		where 
+			table_name = $1
+		ORDER BY 
+			ordinal_position ASC
     `, p.model.Table())
 	if err != nil {
 		return []Column{}, err
